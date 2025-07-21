@@ -2,12 +2,6 @@ from pdf2image import convert_from_path
 import pytesseract
 import os
 
-# Set up Tesseract for Bangla
-# pytesseract.pytesseract.tesseract_cmd = r"C:\Program Files\Tesseract-OCR\tesseract.exe"  # Update if needed
-
-# Optional: Add Bangla language if not already installed
-# Language code for Bengali is "ben"
-
 def ocr_bangla_pdf(pdf_path, lang='ben'):
     images = convert_from_path(pdf_path)
     full_text = ""
@@ -25,4 +19,4 @@ extracted_text = ocr_bangla_pdf(pdf_path)
 with open("bangla_ocr_output.txt", "w", encoding="utf-8") as f:
     f.write(extracted_text)
 
-print("✅ OCR extraction complete.")
+print("OCR extraction complete.")
