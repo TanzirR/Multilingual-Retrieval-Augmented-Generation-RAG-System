@@ -259,7 +259,7 @@ This hybrid approach balances the strengths of both methods:
 
 ### Do the results seem relevant? If not, what might improve them (e.g., better chunking, better embedding model, larger document)?
 
-All the queries in English had no problem giving the correct output. Even the queries in Bengali could give correct output. However, some queries like "বিয়ের সময় কল্যাণীর প্রকৃত বয়স কত ছিল?", the results did not seem relevant at the very top, as the chunk explicitly stating Kalyani's age ("পনেরো বছর") was not among the initial top 40 retrieved candidates. This indicates a potential area for improvement in the initial retrieval stage.
+All the queries in English had no problem giving the correct output. Even the queries in Bengali could give correct output. However, some queries like "বিয়ের সময় কল্যাণীর প্রকৃত বয়স কত ছিল?", the results did not seem relevant at the very top, as the chunk explicitly stating Kalyani's age ("পনেরো বছর") was not among the initial top 40 retrieved candidates. This can be improved by 'changing chunk_size' and `chunk_overlap`. Also changing the parameters such as Initial Candidates (K1), Final Chunks (K2), and BM25 weight in the retrieval stage provided accurate result for this particular query. 
 
 #### Potential Improvements:
 
