@@ -291,9 +291,21 @@ All the queries in English had no problem giving the correct output. Even the qu
 By systematically addressing these areas, the relevance of the retrieved results can be substantially improved for a wider range of queries. The use of EasyOCR provides a solid foundation with cleaner text extraction, which should lead to better overall performance compared to traditional OCR methods.
 
 # Streamlit UI and Output
+
+The sidebar UI contains changeable parameters such as Initial Candidates (K1), Final Chunks (K2). The Semantic Weight updates BM25 weight 
+
 <img width="1900" height="918" alt="UI" src="https://github.com/user-attachments/assets/75a9e729-57b0-431f-a08b-06095012b42e" />
+
+Visualization of Retrieval Analysis of all the chunks retrieved from the query
+
 <img width="1540" height="810" alt="metrics" src="https://github.com/user-attachments/assets/31b638a6-cf77-4b3e-8b4b-b245cb11cce9" />
+
+Shows the number of retrieved chunks and their scores
+
 <img width="1506" height="385" alt="chunk_details" src="https://github.com/user-attachments/assets/9834974a-a64a-46cd-8754-caa7625a5239" />
+
+Generate LLM prompt passed to an external LLM (chatgpt) to generate output.
+
 <img width="683" height="212" alt="output" src="https://github.com/user-attachments/assets/28d5d1e4-bb7b-4d5d-87ed-c5e80f73756f" />
 
 Recent queries and their output are saved on the sidebar for future reference such as conversational memory and follow up qestions
