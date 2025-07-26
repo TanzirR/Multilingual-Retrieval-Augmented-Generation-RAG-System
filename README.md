@@ -43,7 +43,7 @@ Follow these steps to set up and run the RAG retrieval system locally.
 
 ### Running the Pipeline
 
-2. **Extract Text (OCR):**
+1. **Extract Text (OCR):**
    In extract.py, make sure to update the pdf_file_path = './data/bangla-text.pdf' with your pdf name and directory of the pdf. 
    ```bash
    python extract_text.py
@@ -51,7 +51,7 @@ Follow these steps to set up and run the RAG retrieval system locally.
 
    This will generate `extracted_pages_data.json` and `segmented_document_data.json`.
 
-4. **Chunk Text:**
+2. **Chunk Text:**
 
    ```bash
    python chunks.py
@@ -59,7 +59,7 @@ Follow these steps to set up and run the RAG retrieval system locally.
 
    This will generate `structured_chunks.json`.
 
-5. **Create Embeddings and FAISS Index:**
+3. **Create Embeddings and FAISS Index:**
 
    ```bash
    python embedding.py
@@ -67,7 +67,7 @@ Follow these steps to set up and run the RAG retrieval system locally.
 
    This will generate `faiss_index.index` and `chunks_with_metadata.pkl`.
 
-6. **Run the Streamlit UI (Retrieval Tester):**
+4. **Run the Streamlit UI (Retrieval Tester):**
    ```bash
    streamlit run app.py
    ```
