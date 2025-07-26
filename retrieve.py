@@ -330,12 +330,14 @@ def format_for_llm(question, chunks): # chunks will now be a list of dictionarie
     """Format question and chunks for LLM input."""
     context = "\n\n".join([f"CHUNK {i+1} (Page Range: {chunk['metadata'].get('page_range', 'N/A')}):\n{chunk['chunk_text']}" for i, chunk in enumerate(chunks)])
     return f"""
-প্রশ্ন: {question}
+    
+Question / প্রশ্ন: {question}
 
-প্রসঙ্গ:
+Context / প্রসঙ্গ:
 {context}
 
-উত্তরটি বাংলায় দিন। যদি প্রাসঙ্গিক তথ্য না পাওয়া যায়, বলুন 'আমি জানি না'।
+Give the answer. If you do not know the answer, say that you do not know the answer.
+You should reply based on the language of the question.
 """
 
 if __name__ == "__main__":
