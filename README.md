@@ -103,6 +103,8 @@ To test the system, you can use the following sample queries in Bengali. The Str
 ### Sample Bengali Queries:
 
 - অনুপমের ভাষায় সুপুরুষ কাকে বলা হয়েছে?
+- 
+![output 1](https://github.com/user-attachments/assets/0e8f7e4a-21a6-42dd-b1c0-fb5ea0cf9747)
 
 
 ### Sample Output Format (as seen in Streamlit's "LLM Prompt" tab):
