@@ -153,7 +153,7 @@ For a more rigorous quantitative evaluation of a RAG system, one would typically
 
 ## ❓ Answering Key Questions
 
-### What method or library did you use to extract the text, and why? Did you face any formatting challenges with the PDF content?
+### What method or library did I use to extract the text, and why? Did I face any formatting challenges with the PDF content?
 
 We used **EasyOCR** in conjunction with **pdf2image** to extract text from the PDF. `pdf2image` converts each page of the PDF into an image, which `EasyOCR` then processes to extract text using deep learning models. `unicodedata` and `re` (regex) were used for post-OCR cleaning.
 
@@ -172,7 +172,7 @@ We used **EasyOCR** in conjunction with **pdf2image** to extract text from the P
 - **Mixed Languages**: EasyOCR handles Bengali and English mixed text quite well when configured with `['bn', 'en']`, providing better results than traditional OCR engines.
 - **Image Quality**: Low-resolution or poorly scanned documents can still pose challenges, though EasyOCR's neural networks are more robust to image artifacts.
 
-### What chunking strategy did you choose (e.g., paragraph-based, sentence-based, character limit)? Why do you think it works well for semantic retrieval?
+### What chunking strategy did I choose (e.g., paragraph-based, sentence-based, character limit)? Why do I think it works well for semantic retrieval?
 
 Employed a multi-faceted chunking strategy using `langchain.text_splitter.RecursiveCharacterTextSplitter` combined with custom structural segmentation:
 
@@ -180,7 +180,7 @@ Employed a multi-faceted chunking strategy using `langchain.text_splitter.Recurs
 
 2. **Recursive Character Text Splitting**: Within each logical segment, `RecursiveCharacterTextSplitter` is used.
 
-   - **Separators Priority**: We defined a hierarchy of separators: `["।", ".", "!", "?", "\n\n", "\n", "—", ",", " ", ""]`. This prioritizes splitting by sentence-ending punctuation, then paragraph breaks, then line breaks, and finally individual characters as a last resort. This is crucial for maintaining semantic coherence by trying to keep sentences and paragraphs intact.
+   - **Separators Priority**: Defined a hierarchy of separators: `["।", ".", "!", "?", "\n\n", "\n", "—", ",", " ", ""]`. This prioritizes splitting by sentence-ending punctuation, then paragraph breaks, then line breaks, and finally individual characters as a last resort. This is crucial for maintaining semantic coherence by trying to keep sentences and paragraphs intact.
    - **Character Limit & Overlap**: `chunk_size` (e.g., 700 characters) and `chunk_overlap` (e.g., 200 characters) are used to control the size of the chunks and ensure context continuity between them.
 
 3. **Post-processing**: A final step merges very small chunks (e.g., < 50 characters) with adjacent chunks to prevent fragmented context, and re-chunks excessively large chunks (e.g., > 1800 characters) to adhere to size limits.
@@ -193,11 +193,11 @@ This strategy works well because it aims to create chunks that are:
 - **Manageable Size**: Chunks are small enough to be relevant to a specific query but large enough to provide sufficient context for an LLM without exceeding its context window.
 - **Structurally Aware**: Segmenting by document type (story, questions, vocabulary) allows for specialized processing and metadata, improving the relevance of retrieved content for specific query types.
 
-### What embedding model did you use? Why did you choose it? How does it capture the meaning of the text?
+### What embedding model did I use? Why did I choose it? How does it capture the meaning of the text?
 
-We used the **intfloat/multilingual-e5-base** model from sentence-transformers for generating embeddings.
+Used the **intfloat/multilingual-e5-base** model from sentence-transformers for generating embeddings for both English and Bangla.
 
-**Why we chose it:**
+**Why I chose it:**
 
 - **Multilingual Capability**: This model is specifically designed to handle multiple languages, which is essential for our use case involving both Bengali and English text.
 - **Strong Performance**: The E5 series models are known for their strong performance across various semantic similarity and retrieval tasks.
@@ -210,9 +210,9 @@ The `intfloat/multilingual-e5-base` model is a transformer-based neural network.
 - **Vector Representation**: It then outputs a fixed-size numerical vector (embedding) for each piece of text. Texts with similar meanings are mapped to vectors that are close to each other in this high-dimensional vector space.
 - **"passage:" and "query:" Prefixes**: The E5 models are trained with specific prefixes ("passage: " for documents and "query: " for queries). These prefixes help the model differentiate between the type of input, optimizing the embeddings for retrieval tasks where a query needs to be compared against passages.
 
-### How are you comparing the query with your stored chunks? Why did you choose this similarity method and storage setup?
+### How am I comparing the query with your stored chunks? Why did I choose this similarity method and storage setup?
 
-We use a **hybrid retrieval approach** to compare the query with stored chunks, combining two main methods:
+I used a **hybrid retrieval approach** to compare the query with stored chunks, combining two main methods:
 
 #### 1. Semantic Search (Dense Retrieval):
 
@@ -238,7 +238,7 @@ This hybrid approach balances the strengths of both methods:
 - **Re-ranking**: Refines the initial retrieval, ensuring the most relevant chunks are prioritized for the LLM, leading to more accurate answers.
 - **FAISS**: Provides the necessary speed and scalability for large document collections.
 
-### How do you ensure that the question and the document chunks are compared meaningfully? What would happen if the query is vague or missing context?
+### How do I ensure that the question and the document chunks are compared meaningfully? What would happen if the query is vague or missing context?
 
 #### Ensuring Meaningful Comparison:
 
@@ -246,12 +246,12 @@ This hybrid approach balances the strengths of both methods:
 - **Hybrid Retrieval**: The combination of semantic and lexical search ensures that both the "meaning" (semantic) and "keywords" (lexical) of the query are considered. This reduces the chance of missing relevant chunks due to either pure semantic drift or lack of exact keyword matches.
 - **Cross-Encoder Re-ranking**: This is the most important step for ensuring meaningful comparison. By processing the query and each candidate chunk together as a pair, the Cross-Encoder can deeply analyze their interaction and contextual relevance, providing a highly accurate relevance score that goes beyond simple vector distance.
 - **Prompt Engineering for Embeddings**: Using the `passage:` and `query:` prefixes for the E5 model helps align the embeddings for optimal retrieval performance.
-- **Chunking Strategy**: As discussed, our chunking strategy aims to create semantically coherent and contextually rich chunks, ensuring that each chunk represents a meaningful unit of information that can be effectively compared to a query.
+- **Chunking Strategy**: As discussed, my chunking strategy aims to create semantically coherent and contextually rich chunks, ensuring that each chunk represents a meaningful unit of information that can be effectively compared to a query.
 - **Improved OCR Quality**: EasyOCR's deep learning approach provides cleaner, more accurate text extraction, leading to better quality embeddings and more meaningful comparisons.
 
 #### What would happen if the query is vague or missing context?
 
-- **Vague Query**: If the query is vague (e.g., "What about the poet?"), the retrieval system might return a broader set of chunks that touch upon various aspects of the poet's life or work. The re-ranker will still try to find the "most relevant" among these, but the overall relevance might be lower than for a specific query. The LLM would then have a more general context, potentially leading to a more general or less precise answer, or even an "আমি জানি না" if no truly specific answer can be inferred.
+- **Vague Query**: If the query is vague (e.g., "What about the poet?"), the retrieval system might return a broader set of chunks that touch upon various aspects of the poet's life or work. The re-ranker will still try to find the "most relevant" among these, but the overall relevance might be lower than for a specific query. The LLM would then have a more general context, potentially leading to a more general or less precise answer, or even an "I do not know" or আমি জানি না" if no truly specific answer can be inferred.
 
 - **Missing Context (in a conversation)**: In a multi-turn conversation, if the current query relies on previous turns but the system doesn't explicitly pass that conversational history (which our current `app.py` doesn't inherently do without further modifications), the query might be treated as a standalone question. This could lead to:
   - **Irrelevant Retrieval**: The retriever might miss chunks that are relevant only when combined with the previous conversational context.
@@ -259,25 +259,24 @@ This hybrid approach balances the strengths of both methods:
 
 ### Do the results seem relevant? If not, what might improve them (e.g., better chunking, better embedding model, larger document)?
 
-Based on the provided debug output for the query "বিয়ের সময় কল্যাণীর প্রকৃত বয়স কত ছিল?", the results did not seem relevant at the very top, as the chunk explicitly stating Kalyani's age ("পনেরো বছর") was not among the initial top 40 retrieved candidates. This indicates a potential area for improvement in the initial retrieval stage.
+All the queries in English had no problem giving the correct output. Even the queries in Bengali could give correct output. However, some queries like "বিয়ের সময় কল্যাণীর প্রকৃত বয়স কত ছিল?", the results did not seem relevant at the very top, as the chunk explicitly stating Kalyani's age ("পনেরো বছর") was not among the initial top 40 retrieved candidates. This indicates a potential area for improvement in the initial retrieval stage.
 
 #### Potential Improvements:
 
 **1. Chunking Strategy Refinement:**
 
-- **Granularity for Specific Facts**: For very specific factual questions (like age, dates), the current chunking might sometimes split the direct answer from its most relevant surrounding context, or embed it within a larger chunk that isn't highly ranked for that specific detail. We could explore more aggressive splitting around specific factual patterns if such questions are common.
-- **Metadata Leverage**: Ensure that metadata (like question numbers, segment types) is being fully leveraged during retrieval or re-ranking. For instance, if a query is identified as a "question about age," prioritize chunks from "story" or "question" segments that are known to contain such details.
+- **Granularity for Specific Facts**: For very specific factual questions (like age, dates), the current chunking might sometimes split the direct answer from its most relevant surrounding context, or embed it within a larger chunk that isn't highly ranked for that specific detail. I could explore more aggressive splitting around specific factual patterns if such questions are common.
 
 **2. Embedding Model:**
 
 - **Domain-Specific Fine-tuning**: While multilingual-e5-base is good, fine-tuning it on a dataset of Bengali educational texts or questions-answer pairs from this specific domain could significantly boost its relevance for domain-specific queries.
-- **Alternative Multilingual Models**: Experiment with other state-of-the-art multilingual embedding models (e.g., newer versions of E5, or models from Cohere, Google's own embedding models if accessible) to see if they offer better performance for your specific data.
+- **Alternative Multilingual Models**: Experiment with other state-of-the-art multilingual embedding models to see if they offer better performance for the specific data.
 
 **3. Retrieval and Re-ranking Parameters:**
 
 - **Adjust Hybrid Weights**: Experiment with `semantic_weight` and `bm25_weight` in `hybrid_retrieve_initial`. If exact factual recall is more important, slightly increasing `bm25_weight` might help, but this can also introduce noise.
 - **Increase initial_k_for_reranking**: Retrieving a larger pool of initial candidates (e.g., 60-80 instead of 40) might increase the chance of the correct chunk being present, even if its initial hybrid score isn't top-tier. The Cross-Encoder can then pick it out.
-- **Re-ranker Model**: While mmarco-mMiniLMv2-L12-H384-v1 is good, research if there are Cross-Encoder models specifically fine-tuned for Bengali or for factual question answering.
+- **Re-ranker Model**: While mmarco-mMiniLMv2-L12-H384-v1 is good for English, it is not the best for Bengali.
 
 **4. Document Quality (Pre-processing):**
 
