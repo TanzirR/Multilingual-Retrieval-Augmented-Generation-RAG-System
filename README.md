@@ -183,7 +183,7 @@ I used **EasyOCR** in conjunction with **pdf2image** to extract text from the PD
     "lang": "bn,en",
     "text": "SC26\nঅনলাইন ব্যাচ বাংলা  ইংরেজি আইসিটি\nCSHUTE\nশিখনফল\nনিম্নবিত্ত ব্যক্তির হঠাৎ বিত্তশালী হয়ে ওঠার ফলে সমাজে পরিচয় সংকট সম্পর্কে ধারণা লাভ করবে  তৎকালীন সমাজসভ্যতা ও মানবতার অবমাননা সম্পর্কে জানতে পারবে.."
   },
-
+}
 '''
 
 ### What chunking strategy did I choose (e.g., paragraph-based, sentence-based, character limit)? Why do I think it works well for semantic retrieval?
