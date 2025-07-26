@@ -118,7 +118,7 @@ def extract_text_with_ocr(pdf_path, dpi=400, lang_list=['bn', 'en']):
 # --- Execution ---
 import numpy as np  # ✅ Needed for np.array conversion
 
-pdf_file_path = './data/statement-of-interest.pdf'
+pdf_file_path = './data/bangla-text.pdf'
 output_json_file = 'extracted_pages_data.json'
 segmented_output_json_file = 'segmented_document_data.json'
 
