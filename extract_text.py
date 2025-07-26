@@ -89,7 +89,7 @@ def extract_text_with_ocr(pdf_path, dpi=400, lang_list=['bn', 'en']):
     print(f"Converting PDF to images at {dpi} DPI...")
     images = convert_from_path(pdf_path, dpi=dpi)
 
-    # ✅ Initialize EasyOCR reader once
+    #  Initialize EasyOCR reader once
     print("Initializing EasyOCR...")
     reader = easyocr.Reader(lang_list, gpu=True)
 
@@ -98,7 +98,7 @@ def extract_text_with_ocr(pdf_path, dpi=400, lang_list=['bn', 'en']):
         page_num = i + 1
         print(f"OCR processing page {page_num}/{len(images)}...")
 
-        # ✅ Convert PIL Image to format compatible with EasyOCR
+        #  Convert PIL Image to format compatible with EasyOCR
         img_np = np.array(img.convert('RGB'))
 
         results = reader.readtext(img_np, detail=0, paragraph=True)
@@ -116,7 +116,7 @@ def extract_text_with_ocr(pdf_path, dpi=400, lang_list=['bn', 'en']):
     return extracted_pages_data
 
 # --- Execution ---
-import numpy as np  # ✅ Needed for np.array conversion
+import numpy as np  
 
 pdf_file_path = './data/bangla-text.pdf'
 output_json_file = 'extracted_pages_data.json'
