@@ -155,7 +155,7 @@ For a more rigorous quantitative evaluation of a RAG system, one would typically
 
 ### What method or library did I use to extract the text, and why? Did I face any formatting challenges with the PDF content?
 
-We used **EasyOCR** in conjunction with **pdf2image** to extract text from the PDF. `pdf2image` converts each page of the PDF into an image, which `EasyOCR` then processes to extract text using deep learning models. `unicodedata` and `re` (regex) were used for post-OCR cleaning.
+I used **EasyOCR** in conjunction with **pdf2image** to extract text from the PDF. `pdf2image` converts each page of the PDF into an image, which `EasyOCR` then processes to extract text using deep learning models. `unicodedata` and `re` (regex) were used for post-OCR cleaning. This performed better for both English and Benglai compared to using **Tesseract OCR**
 
 **Why EasyOCR**: EasyOCR is a Python-based OCR library that uses deep learning models for text recognition. It offers several advantages:
 
@@ -165,7 +165,7 @@ We used **EasyOCR** in conjunction with **pdf2image** to extract text from the P
 - **Multi-language support**: Excellent support for Bengali (`bn`) and English (`en`) with good handling of mixed-language documents
 - **Better handling of stylized text**: More robust against font variations and image quality issues
 
-**Challenges**: There were some challenges faced, though EasyOCR handles many of them better than Tesseract OCR. Tesseract OCR failed to recognize both English and Bengali with a single script.EasyOCR fixed this isse.
+**Challenges**: There were some challenges faced, though EasyOCR handles many of them better than Tesseract OCR. Tesseract OCR failed to recognize both English and Bengali with a single script. EasyOCR fixed this isse.
 
 - **Stylized Text/Logos**: Elements like "10 MINUTE SCHOOL" may still be misrecognized if heavily stylized, though EasyOCR's deep learning approach is more resilient to font variations.
 - **Layout Interpretation**: While EasyOCR provides bounding box information that can help with layout understanding, complex multi-column layouts may still require careful processing to maintain proper reading order.
