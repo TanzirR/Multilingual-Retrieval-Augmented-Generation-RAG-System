@@ -22,7 +22,7 @@ Follow these steps to set up and run the RAG retrieval system locally.
 
 - **easyocr==1.7.2**
 - **faiss_cpu==1.11.0.post1**
-- **langchain==0.3.27**: No additional system-level installation required. EasyOCR will automatically download the required language models (Bengali and English) on first use.
+- **langchain==0.3.27**
 - **numpy==2.3.2**
 - **Pillow==11.3.0**
 - **rank_bm25==0.2.2**
