@@ -171,6 +171,20 @@ I used **EasyOCR** in conjunction with **pdf2image** to extract text from the PD
 - **Layout Interpretation**: While EasyOCR provides bounding box information that can help with layout understanding, complex multi-column layouts may still require careful processing to maintain proper reading order.
 - **Mixed Languages**: EasyOCR handles Bengali and English mixed text quite well when configured with `['bn', 'en']`, providing better results than traditional OCR engines.
 - **Image Quality**: Low-resolution or poorly scanned documents can still pose challenges, though EasyOCR's neural networks are more robust to image artifacts.
+  
+```json
+{
+    "page_num": 1,
+    "lang": "bn,en",
+    "text": "OSHOTE MINUTE\nHSC26\nঅনলাইন ব্যাচ বংলা ইংরেজি  আইসিটি\nবাংলা ১ম পত্র\nআলোচ্য বিষয়\nঅপরিচিতা\nঅনলাইন ব্যাচ সম্পর্কিত যেকোনো জিজ্ঞাসায় কল কারৌ 16910"
+  },
+  {
+    "page_num": 2,
+    "lang": "bn,en",
+    "text": "SC26\nঅনলাইন ব্যাচ বাংলা  ইংরেজি আইসিটি\nCSHUTE\nশিখনফল\nনিম্নবিত্ত ব্যক্তির হঠাৎ বিত্তশালী হয়ে ওঠার ফলে সমাজে পরিচয় সংকট সম্পর্কে ধারণা লাভ করবে  তৎকালীন সমাজসভ্যতা ও মানবতার অবমাননা সম্পর্কে জানতে পারবে.."
+  },
+
+'''
 
 ### What chunking strategy did I choose (e.g., paragraph-based, sentence-based, character limit)? Why do I think it works well for semantic retrieval?
 
