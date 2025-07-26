@@ -295,7 +295,9 @@ By systematically addressing these areas, the relevance of the retrieved results
 <img width="1540" height="810" alt="metrics" src="https://github.com/user-attachments/assets/31b638a6-cf77-4b3e-8b4b-b245cb11cce9" />
 <img width="1506" height="385" alt="chunk_details" src="https://github.com/user-attachments/assets/9834974a-a64a-46cd-8754-caa7625a5239" />
 <img width="683" height="212" alt="output" src="https://github.com/user-attachments/assets/28d5d1e4-bb7b-4d5d-87ed-c5e80f73756f" />
-**Recent queries and their output are saved on the sidebar for future reference such as conversational memory and follow up qestions** 
+
+Recent queries and their output are saved on the sidebar for future reference such as conversational memory and follow up qestions
+
 <img width="1715" height="323" alt="recent_queries" src="https://github.com/user-attachments/assets/20377b21-ea7e-41ec-af27-acf45693c682" />
 
 
