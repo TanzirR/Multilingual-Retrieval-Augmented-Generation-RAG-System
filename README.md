@@ -17,19 +17,7 @@ Follow these steps to set up and run the RAG retrieval system locally.
   - **Windows**: Download Poppler for Windows from [here](https://poppler.freedesktop.org/). Extract it and add the bin folder to your system's PATH.
   - **macOS (Homebrew)**: `brew install poppler`
   - **Linux (Ubuntu/Debian)**: `sudo apt-get install poppler-utils`
-  - 
-### Packages
-
-- **easyocr==1.7.2**
-- **faiss_cpu==1.11.0.post1**
-- **langchain==0.3.27**
-- **numpy==2.3.2**
-- **Pillow==11.3.0**
-- **rank_bm25==0.2.2**
-- **regex==2024.11.6**
-- **sentence_transformers==5.0.0**
-- **streamlit==1.47.1**    
-
+ 
 ### Installation Steps
 
 1. **Clone the repository:**
