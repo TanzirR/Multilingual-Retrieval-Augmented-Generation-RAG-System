@@ -25,7 +25,7 @@ class HybridRetriever:
         self.tokenized_chunks = [self.tokenize_for_bm25(chunk_text) for chunk_text in self.chunks_content]
         self.bm25 = BM25Okapi(self.tokenized_chunks)
         
-        print(f"✅ Hybrid retriever initialized with {len(self.chunks_content)} chunks")
+        print(f" Hybrid retriever initialized with {len(self.chunks_content)} chunks")
     
     def tokenize_for_bm25(self, text):
         """Tokenize text for BM25 (preserving Bengali and English words)."""
@@ -168,12 +168,12 @@ class HybridRetriever:
         final_results = sorted(initial_candidates, key=lambda x: x['rerank_score'], reverse=True)[:final_k]
         
         # --- Final Debug Print for the LLM Prompt ---
-        print(f"\n🔍 Query: {query}")
-        print(f"📊 Final {len(final_results)} Chunks after Re-ranking:")
+        print(f"\n Query: {query}")
+        print(f"Final {len(final_results)} Chunks after Re-ranking:")
         print("="*80)
         
         for i, result in enumerate(final_results, 1):
-            print(f"\n📄 RANK {i}")
+            print(f"\n RANK {i}")
             print(f"   Re-rank Score: {result['rerank_score']:.4f}") 
             print(f"   Initial Hybrid Score: {result['hybrid_score']:.4f}")
             print(f"   Semantic:       {result['semantic_score']:.4f}")
@@ -304,7 +304,7 @@ def create_qa_pipeline():
         retriever = HybridRetriever()
         return retriever
     except Exception as e:
-        print(f"❌ Error initializing retriever: {e}")
+        print(f" Error initializing retriever: {e}")
         print("Make sure you have run embedding.py to create chunks_with_metadata.pkl and faiss_index.index")
         return None
 
@@ -342,7 +342,7 @@ You should reply based on the language of the question.
 
 if __name__ == "__main__":
     # Test the hybrid retriever
-    print("🧪 Testing Hybrid Retriever")
+    print(" Testing Hybrid Retriever")
     print("="*50)
     
     # Initialize retriever
@@ -361,7 +361,7 @@ if __name__ == "__main__":
         
         # Capture all output to save to file
         all_output = []
-        all_output.append("🧪 Testing Hybrid Retriever")
+        all_output.append(" Testing Hybrid Retriever")
         all_output.append("="*50)
         
         for question in test_questions:
@@ -392,7 +392,7 @@ if __name__ == "__main__":
             all_output.append(debug_output)
             
             # Add LLM prompt section
-            llm_section = f"\n📝 LLM PROMPT (with {len(results)} chunks):\n" + "-"*40
+            llm_section = f"\n LLM PROMPT (with {len(results)} chunks):\n" + "-"*40
             print(llm_section)
             all_output.append(llm_section)
             
@@ -406,8 +406,8 @@ if __name__ == "__main__":
         try:
             with open(output_file, "w", encoding="utf-8") as f:
                 f.write("\n".join(all_output))
-            print(f"\n✅ All retrieval output saved to: {output_file}")
+            print(f"\n All retrieval output saved to: {output_file}")
         except Exception as e:
-            print(f"\n❌ Error saving output file: {e}")
+            print(f"\n Error saving output file: {e}")
     else:
-        print("❌ Failed to initialize retriever")
+        print(" Failed to initialize retriever")
