@@ -2,7 +2,7 @@ import faiss
 import pickle
 import numpy as np
 from sentence_transformers import SentenceTransformer
-import json # Import json to load the structured chunks
+import json 
 
 def load_chunks_from_file(file_path="structured_chunks.json"):
     """
