@@ -193,6 +193,29 @@ This strategy works well because it aims to create chunks that are:
 - **Manageable Size**: Chunks are small enough to be relevant to a specific query but large enough to provide sufficient context for an LLM without exceeding its context window.
 - **Structurally Aware**: Segmenting by document type (story, questions, vocabulary) allows for specialized processing and metadata, improving the relevance of retrieved content for specific query types.
 
+```json
+{
+    "content": "১  অনুপমের বাবা কী করে জীবিকা নির্বাহ করতেন ডাক্তার খ ওকালাত গ মাস্টার ঘ ব্যবসা ২I মামাকে ভাগ্য দেবতার প্রধান এজেন্ট বলার কারণ তার প্রতপতি খ প্রভাব গ বিচক্ষণতা ঘ কূট বুদ্ধি নিচের অনুচ্ছেদটি পড়ে ..
+    "metadata": {
+      "type": "story_segment",
+      "segment_id": "story_1",
+      "chunk_idx": 1,
+      "page_range": "1-2",
+      "source": "textbook_story"
+    }
+  },
+  {
+    "content": "৩ দীপুর চাচার সঙ্গে অপরিচিতা গল্পের কোন চরিত্রের মিল আছে হরশের খ মামার গ শিক্ষকের ঘ বিনুর..
+    "metadata": {
+      "type": "story_segment",
+      "segment_id": "story_1",
+      "chunk_idx": 2,
+      "page_range": "1-2",
+      "source": "textbook_story"
+    }
+  },
+```
+
 ### What embedding model did I use? Why did I choose it? How does it capture the meaning of the text?
 
 Used the **intfloat/multilingual-e5-base** model from sentence-transformers for generating embeddings for both English and Bangla.
