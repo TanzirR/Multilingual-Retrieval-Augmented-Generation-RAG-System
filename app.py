@@ -103,15 +103,20 @@ with st.sidebar:
     show_debug = st.checkbox("Show Debug Output", value=True)
     show_chunk_details = st.checkbox("Show Chunk Details", value=True)
 
-# --- Recent Queries ---
+# --- Session State Management ---
 if 'query_history' not in st.session_state:
     st.session_state.query_history = []
+if 'query_results' not in st.session_state:
+    st.session_state.query_results = {}
 
+# --- Recent Queries ---
 if st.session_state.query_history:
     with st.sidebar:
         st.subheader("📝 Recent Queries")
         for i, hist_query in enumerate(reversed(st.session_state.query_history[-5:]), 1):
             if st.button(f"🔄 {hist_query[:30]}...", key=f"history_{i}"):
+                # Set the selected query for loading
+                st.session_state.selected_query = hist_query
                 st.session_state.query_input = hist_query
                 st.rerun()
 
@@ -129,9 +134,20 @@ with col1:
     if query != st.session_state.query_input:
         st.session_state.query_input = query
 
+# Initialize variables
 final_retrieved_chunks_for_llm = []
 captured_output = io.StringIO()
 retrieval_time = 0
+
+# Check if we're loading a previous query
+if 'selected_query' in st.session_state and st.session_state.selected_query in st.session_state.query_results:
+    query = st.session_state.selected_query
+    saved_results = st.session_state.query_results[query]
+    final_retrieved_chunks_for_llm = saved_results['chunks']
+    captured_output = io.StringIO(saved_results['debug_output'])
+    retrieval_time = saved_results['retrieval_time']
+    # Clear the selected query flag
+    del st.session_state.selected_query
 
 if st.button("🚀 Run Retrieval", type="primary", use_container_width=True):
     if not query.strip():
@@ -167,13 +183,39 @@ if st.button("🚀 Run Retrieval", type="primary", use_container_width=True):
             progress_bar.empty()
             status_text.empty()
 
+        # Save results after new retrieval
+        if final_retrieved_chunks_for_llm and query.strip():
+            llm_prompt = format_for_llm(query, final_retrieved_chunks_for_llm)
+            scores_data = {
+                'Chunk': [f"Chunk {i+1}" for i in range(len(final_retrieved_chunks_for_llm))],
+                'Re-rank Score': [chunk.get('rerank_score', 0) for chunk in final_retrieved_chunks_for_llm],
+                'Semantic Score': [chunk.get('semantic_score', 0) for chunk in final_retrieved_chunks_for_llm],
+                'BM25 Score': [chunk.get('bm25_score', 0) for chunk in final_retrieved_chunks_for_llm]
+            }
+            
+            st.session_state.query_results[query] = {
+                'chunks': final_retrieved_chunks_for_llm,
+                'llm_prompt': llm_prompt,
+                'debug_output': captured_output.getvalue(),
+                'retrieval_time': retrieval_time,
+                'scores_data': scores_data,
+                'timestamp': datetime.now().strftime("%Y-%m-%d %H:%M:%S")
+            }
+
+# Display results if we have any (either from new retrieval or loaded from history)
 if final_retrieved_chunks_for_llm:
     st.success(f"✅ Retrieved {len(final_retrieved_chunks_for_llm)} chunks in {retrieval_time:.2f}s")
+    
     tab1, tab2, tab3, tab4 = st.tabs(["🎯 LLM Prompt", "📄 Retrieved Chunks", "🔍 Debug Output", "📊 Analysis"])
 
     with tab1:
         st.subheader("📝 Generated LLM Prompt")
-        llm_prompt = format_for_llm(query, final_retrieved_chunks_for_llm)
+        # Use saved LLM prompt if available, otherwise generate it
+        if query in st.session_state.query_results:
+            llm_prompt = st.session_state.query_results[query]['llm_prompt']
+        else:
+            llm_prompt = format_for_llm(query, final_retrieved_chunks_for_llm)
+        
         col1, col2 = st.columns([4, 1])
         with col1:
             st.code(llm_prompt, language="markdown")
@@ -193,23 +235,29 @@ if final_retrieved_chunks_for_llm:
                     with col2:
                         st.metric("BM25 Score", f"{chunk.get('bm25_score', 0):.4f}")
                         st.metric("Chunk Index", chunk.get('chunk_idx', 'N/A'))
-                    st.text_area("Content:", chunk.get('chunk_text', chunk.get('content', 'No content')), height=200)
+                    st.text_area("Content:", chunk.get('chunk_text', chunk.get('content', 'No content')), height=200, key=f"chunk_content_{i}_{hash(query)}")
 
     with tab3:
         if show_debug:
             st.subheader("🔧 Debug Output")
-            st.text_area("Debug Information:", captured_output.getvalue(), height=400)
+            debug_text = captured_output.getvalue() if hasattr(captured_output, 'getvalue') else str(captured_output)
+            st.text_area("Debug Information:", debug_text, height=400)
         else:
             st.info("Debug output is disabled.")
 
     with tab4:
         st.subheader("📊 Retrieval Analysis")
-        scores_data = {
-            'Chunk': [f"Chunk {i+1}" for i in range(len(final_retrieved_chunks_for_llm))],
-            'Re-rank Score': [chunk.get('rerank_score', 0) for chunk in final_retrieved_chunks_for_llm],
-            'Semantic Score': [chunk.get('semantic_score', 0) for chunk in final_retrieved_chunks_for_llm],
-            'BM25 Score': [chunk.get('bm25_score', 0) for chunk in final_retrieved_chunks_for_llm]
-        }
+        # Use saved scores data if available, otherwise generate it
+        if query in st.session_state.query_results:
+            scores_data = st.session_state.query_results[query]['scores_data']
+        else:
+            scores_data = {
+                'Chunk': [f"Chunk {i+1}" for i in range(len(final_retrieved_chunks_for_llm))],
+                'Re-rank Score': [chunk.get('rerank_score', 0) for chunk in final_retrieved_chunks_for_llm],
+                'Semantic Score': [chunk.get('semantic_score', 0) for chunk in final_retrieved_chunks_for_llm],
+                'BM25 Score': [chunk.get('bm25_score', 0) for chunk in final_retrieved_chunks_for_llm]
+            }
+        
         st.bar_chart(scores_data, x='Chunk', y=['Re-rank Score', 'Semantic Score', 'BM25 Score'])
         col1, col2, col3 = st.columns(3)
         with col1:
@@ -219,12 +267,35 @@ if final_retrieved_chunks_for_llm:
         with col3:
             st.metric("Avg BM25 Score", f"{sum(scores_data['BM25 Score']) / len(scores_data['BM25 Score']):.4f}")
 
+    # Add export functionality
+    if query in st.session_state.query_results:
+        st.subheader("💾 Export Results")
+        col1, col2 = st.columns(2)
+        with col1:
+            if st.button("📥 Download JSON Results"):
+                results_json = json.dumps(st.session_state.query_results[query], indent=2, ensure_ascii=False)
+                st.download_button(
+                    label="Download",
+                    data=results_json,
+                    file_name=f"query_results_{datetime.now().strftime('%Y%m%d_%H%M%S')}.json",
+                    mime="application/json"
+                )
+        with col2:
+            if st.button("🗑️ Clear Query History"):
+                st.session_state.query_history = []
+                st.session_state.query_results = {}
+                st.success("Query history cleared!")
+                st.rerun()
+
 # --- Session State Management ---
 if query and len(final_retrieved_chunks_for_llm) > 0:
     if query not in st.session_state.query_history:
         st.session_state.query_history.append(query)
         if len(st.session_state.query_history) > 10:
-            st.session_state.query_history.pop(0)
+            # Remove oldest query and its results
+            oldest_query = st.session_state.query_history.pop(0)
+            if oldest_query in st.session_state.query_results:
+                del st.session_state.query_results[oldest_query]
 
 # --- Footer ---
 st.divider()
