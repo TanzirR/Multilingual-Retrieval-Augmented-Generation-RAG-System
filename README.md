@@ -11,8 +11,6 @@ Follow these steps to set up and run the RAG retrieval system locally.
 
 - **Python 3.8+**
 - **Git**
-- **EasyOCR**: No additional system-level installation required. EasyOCR will automatically download the required language models (Bengali and English) on first use.
-
 - **Poppler (for pdf2image):**
   - **Windows**: Download Poppler for Windows from [here](https://poppler.freedesktop.org/). Extract it and add the bin folder to your system's PATH.
   - **macOS (Homebrew)**: `brew install poppler`
