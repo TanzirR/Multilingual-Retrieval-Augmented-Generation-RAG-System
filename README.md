@@ -23,8 +23,8 @@ Follow these steps to set up and run the RAG retrieval system locally.
 1. **Clone the repository:**
 
    ```bash
-   git clone <repository_url>
-   cd <repository_directory>
+   git clone https://github.com/TanzirR/Multilingual-Retrieval-Augmented-Generation-RAG-System.git
+   cd Multilingual-Retrieval-Augmented-Generation-RAG-System
    ```
 
 2. **Create a virtual environment (recommended):**
@@ -46,17 +46,17 @@ Follow these steps to set up and run the RAG retrieval system locally.
 
 ### Running the Pipeline
 
-1. Ensure your input PDF file (e.g., `bangla-text.pdf`) is in the project root directory.
+
 
 2. **Extract Text (OCR):**
-
+   pdf_file_path = './data/bangla-text.pdf' (Make sure the pdf is inside the data directory. Update the pdf_file_path with the name of the pdf in extract_text.py)
    ```bash
-   python ocr_pdf_dynamic.py
+   python extract_text.py
    ```
 
    This will generate `extracted_pages_data.json` and `segmented_document_data.json`.
 
-3. **Chunk Text:**
+4. **Chunk Text:**
 
    ```bash
    python chunks.py
@@ -64,7 +64,7 @@ Follow these steps to set up and run the RAG retrieval system locally.
 
    This will generate `structured_chunks.json`.
 
-4. **Create Embeddings and FAISS Index:**
+5. **Create Embeddings and FAISS Index:**
 
    ```bash
    python embedding.py
@@ -72,7 +72,7 @@ Follow these steps to set up and run the RAG retrieval system locally.
 
    This will generate `faiss_index.index` and `chunks_with_metadata.pkl`.
 
-5. **Run the Streamlit UI (Retrieval Tester):**
+6. **Run the Streamlit UI (Retrieval Tester):**
    ```bash
    streamlit run app.py
    ```
@@ -102,10 +102,8 @@ To test the system, you can use the following sample queries in Bengali. The Str
 
 ### Sample Bengali Queries:
 
-- আহসান হাবীবের জন্মস্থান কোথায়? (Where is Ahsan Habib's birthplace?)
-- ভালোবাসা নামের অস্ত্র উত্তোলিত হলে কী হবে? (What will happen if the weapon named love is raised?)
-- ট্রয়নগরী কিসের দৃষ্টান্ত? (What is Troy City an example of?)
-- আহসান হাবীবকে কোন দুটি পুরস্কারে ভূষিত করা হয়? (Which two awards was Ahsan Habib honored with?)
+- অনুপমের ভাষায় সুপুরুষ কাকে বলা হয়েছে?
+
 
 ### Sample Output Format (as seen in Streamlit's "LLM Prompt" tab):
 
@@ -167,7 +165,7 @@ We used **EasyOCR** in conjunction with **pdf2image** to extract text from the P
 - **Multi-language support**: Excellent support for Bengali (`bn`) and English (`en`) with good handling of mixed-language documents
 - **Better handling of stylized text**: More robust against font variations and image quality issues
 
-**Challenges**: Yes, we faced some formatting challenges, though EasyOCR handles many of them better than traditional OCR:
+**Challenges**: There were some challenges faced, though EasyOCR handles many of them better than Tesseract OCR. Tesseract OCR failed to recognize both English and Bengali with a single script.EasyOCR fixed this isse.
 
 - **Stylized Text/Logos**: Elements like "10 MINUTE SCHOOL" may still be misrecognized if heavily stylized, though EasyOCR's deep learning approach is more resilient to font variations.
 - **Layout Interpretation**: While EasyOCR provides bounding box information that can help with layout understanding, complex multi-column layouts may still require careful processing to maintain proper reading order.
@@ -176,7 +174,7 @@ We used **EasyOCR** in conjunction with **pdf2image** to extract text from the P
 
 ### What chunking strategy did you choose (e.g., paragraph-based, sentence-based, character limit)? Why do you think it works well for semantic retrieval?
 
-We employed a multi-faceted chunking strategy using `langchain.text_splitter.RecursiveCharacterTextSplitter` combined with custom structural segmentation:
+Employed a multi-faceted chunking strategy using `langchain.text_splitter.RecursiveCharacterTextSplitter` combined with custom structural segmentation:
 
 1. **Structural Segmentation**: The `DocumentProcessor` first segments the entire PDF into logical blocks based on content patterns (e.g., "story," "vocabulary," "questions," "general"). This ensures that semantically distinct sections are kept separate.
 
