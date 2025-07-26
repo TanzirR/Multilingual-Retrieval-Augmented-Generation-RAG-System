@@ -173,7 +173,7 @@ I used **EasyOCR** in conjunction with **pdf2image** to extract text from the PD
 - **Image Quality**: Low-resolution or poorly scanned documents can still pose challenges, though EasyOCR's neural networks are more robust to image artifacts.
   
 ```json
-{
+[{
     "page_num": 1,
     "lang": "bn,en",
     "text": "OSHOTE MINUTE\nHSC26\nঅনলাইন ব্যাচ বংলা ইংরেজি  আইসিটি\nবাংলা ১ম পত্র\nআলোচ্য বিষয়\nঅপরিচিতা\nঅনলাইন ব্যাচ সম্পর্কিত যেকোনো জিজ্ঞাসায় কল কারৌ 16910"
@@ -183,7 +183,7 @@ I used **EasyOCR** in conjunction with **pdf2image** to extract text from the PD
     "lang": "bn,en",
     "text": "SC26\nঅনলাইন ব্যাচ বাংলা  ইংরেজি আইসিটি\nCSHUTE\nশিখনফল\nনিম্নবিত্ত ব্যক্তির হঠাৎ বিত্তশালী হয়ে ওঠার ফলে সমাজে পরিচয় সংকট সম্পর্কে ধারণা লাভ করবে  তৎকালীন সমাজসভ্যতা ও মানবতার অবমাননা সম্পর্কে জানতে পারবে.."
   },
-}
+}]
 '''
 
 ### What chunking strategy did I choose (e.g., paragraph-based, sentence-based, character limit)? Why do I think it works well for semantic retrieval?
@@ -208,7 +208,7 @@ This strategy works well because it aims to create chunks that are:
 - **Structurally Aware**: Segmenting by document type (story, questions, vocabulary) allows for specialized processing and metadata, improving the relevance of retrieved content for specific query types.
 
 ```json
-{
+[{
     "content": "১  অনুপমের বাবা কী করে জীবিকা নির্বাহ করতেন ডাক্তার খ ওকালাত গ মাস্টার ঘ ব্যবসা ২I মামাকে ভাগ্য দেবতার প্রধান এজেন্ট বলার কারণ তার প্রতপতি খ প্রভাব গ বিচক্ষণতা ঘ কূট বুদ্ধি নিচের অনুচ্ছেদটি পড়ে .."
     "metadata": {
       "type": "story_segment",
@@ -227,7 +227,7 @@ This strategy works well because it aims to create chunks that are:
       "page_range": "1-2",
       "source": "textbook_story"
     }
-  },
+  },]
 ```
 
 ### What embedding model did I use? Why did I choose it? How does it capture the meaning of the text?
