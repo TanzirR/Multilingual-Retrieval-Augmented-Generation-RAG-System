@@ -7,22 +7,25 @@ from sentence_transformers import SentenceTransformer, CrossEncoder # Import Cro
 from rank_bm25 import BM25Okapi
 
 class HybridRetriever:
-    def __init__(self, chunks_file="chunks.pkl", index_file="faiss_index.index"):
+    def __init__(self, chunks_file="chunks_with_metadata.pkl", index_file="faiss_index.index"):
         """Initialize hybrid retriever with BM25 and semantic search."""
         # Load chunks and FAISS index
         with open(chunks_file, "rb") as f:
-            self.chunks = pickle.load(f)
+            self.chunks_with_metadata = pickle.load(f) # Renamed to clearly indicate it holds metadata
+        
+        # Extract just the chunk content for operations that need only text
+        self.chunks_content = [chunk['content'] for chunk in self.chunks_with_metadata]
         
         self.faiss_index = faiss.read_index(index_file)
         self.embedding_model = SentenceTransformer("intfloat/multilingual-e5-base")
         # Initialize CrossEncoder for re-ranking
         self.reranker_model = CrossEncoder('cross-encoder/mmarco-mMiniLMv2-L12-H384-v1')
         
-        # Initialize BM25 with tokenized chunks
-        self.tokenized_chunks = [self.tokenize_for_bm25(chunk) for chunk in self.chunks]
+        # Initialize BM25 with tokenized chunks_content
+        self.tokenized_chunks = [self.tokenize_for_bm25(chunk_text) for chunk_text in self.chunks_content]
         self.bm25 = BM25Okapi(self.tokenized_chunks)
         
-        print(f"✅ Hybrid retriever initialized with {len(self.chunks)} chunks")
+        print(f"✅ Hybrid retriever initialized with {len(self.chunks_content)} chunks")
     
     def tokenize_for_bm25(self, text):
         """Tokenize text for BM25 (preserving Bengali and English words)."""
@@ -92,7 +95,8 @@ class HybridRetriever:
             
             initial_candidates.append({
                 'chunk_idx': chunk_idx,
-                'chunk_text': self.chunks[chunk_idx], # Ensure chunk_text is available here
+                'chunk_text': self.chunks_content[chunk_idx], # Get content from self.chunks_content
+                'metadata': self.chunks_with_metadata[chunk_idx]['metadata'], # Include full metadata
                 'hybrid_score': hybrid_score, 
                 'semantic_score': scores['semantic'],
                 'bm25_score': scores['bm25']
@@ -142,7 +146,6 @@ class HybridRetriever:
         print(f"\n--- Stage 2: Cross-Encoder Re-ranking (Selecting Top {final_k}) ---")
 
         # Collect chunks and their re-rank scores
-        # Corrected: Use 'chunk_text' to access the text
         rerank_inputs = [(query, cand['chunk_text']) for cand in initial_candidates]
         rerank_scores = self.reranker_model.predict(rerank_inputs).tolist()
 
@@ -154,9 +157,10 @@ class HybridRetriever:
         print("\n--- All Initial Candidates with Re-rank Scores (for debug) ---")
         debug_sorted_candidates = sorted(initial_candidates, key=lambda x: x['rerank_score'], reverse=True)
         for i, cand in enumerate(debug_sorted_candidates):
-            print(f"  Rank {i+1} (Debug) | Chunk Index: {cand['chunk_idx']} | Re-rank Score: {cand['rerank_score']:.4f} | Initial Hybrid Score: {cand['hybrid_score']:.4f}")
-            # Corrected: Use 'chunk_text' for preview
-            print(f"    Text Preview: {cand['chunk_text'][:100]}...") 
+            print(f"   Rank {i+1} (Debug) | Chunk Index: {cand['chunk_idx']} | Re-rank Score: {cand['rerank_score']:.4f} | Initial Hybrid Score: {cand['hybrid_score']:.4f}")
+            print(f"     Text Preview: {cand['chunk_text'][:100]}...")
+            if 'metadata' in cand: # Display metadata for debug
+                print(f"     Metadata: {cand['metadata']}")
         print("------------------------------------------------------------------")
         # --- END TEMPORARY DEBUG PRINT ---
 
@@ -170,23 +174,25 @@ class HybridRetriever:
         
         for i, result in enumerate(final_results, 1):
             print(f"\n📄 RANK {i}")
-            print(f"  Re-rank Score: {result['rerank_score']:.4f}") 
-            print(f"  Initial Hybrid Score: {result['hybrid_score']:.4f}")
-            print(f"  Semantic:      {result['semantic_score']:.4f}")
-            print(f"  BM25:          {result['bm25_score']:.4f}")
-            print(f"  Chunk Index:   {result['chunk_idx']}") 
-            print(f"  Text Preview: {result['chunk_text'][:100]}...") # Use 'chunk_text'
+            print(f"   Re-rank Score: {result['rerank_score']:.4f}") 
+            print(f"   Initial Hybrid Score: {result['hybrid_score']:.4f}")
+            print(f"   Semantic:       {result['semantic_score']:.4f}")
+            print(f"   BM25:           {result['bm25_score']:.4f}")
+            print(f"   Chunk Index:    {result['chunk_idx']}") 
+            print(f"   Text Preview: {result['chunk_text'][:100]}...") # Use 'chunk_text'
+            if 'metadata' in result:
+                print(f"   Metadata: {result['metadata']}") # Display full metadata
             
             # Show keyword matches
             query_tokens = set(self.tokenize_for_bm25(query))
             chunk_tokens = set(self.tokenize_for_bm25(result['chunk_text'])) # Use 'chunk_text'
             matches = query_tokens & chunk_tokens
             if matches:
-                print(f"  Keywords Found: {', '.join(matches)}")
+                print(f"   Keywords Found: {', '.join(matches)}")
         
         return final_results # Return full results with all scores for debug purposes
 
-# Legacy functions for backward compatibility (These remain outside the class)
+# Legacy functions for backward compatibility (These remain outside the class, mostly unused now)
 def normalize_text(text):
     """Non-destructive normalization that preserves Bengali characters"""
     puncts = string.punctuation + '।""…''–—'
@@ -254,8 +260,8 @@ def hybrid_rerank(query, chunks, semantic_scores, semantic_weight=0.7, keyword_w
 def format_for_manual_llm(query, top_chunks):
     """Format query and chunks for manual LLM input."""
     context = ""
-    for i, chunk in enumerate(top_chunks, 1):
-        context += f"CHUNK {i}:\n{chunk}\n\n"
+    for i, chunk_dict in enumerate(top_chunks, 1): # top_chunks now contain dictionaries
+        context += f"CHUNK {i}:\n{chunk_dict['chunk_text']}\n\n" # Access 'chunk_text'
     
     prompt = f"""প্রশ্ন: {query}
 
@@ -299,7 +305,7 @@ def create_qa_pipeline():
         return retriever
     except Exception as e:
         print(f"❌ Error initializing retriever: {e}")
-        print("Make sure you have run embedding.py to create chunks.pkl and faiss_index.index")
+        print("Make sure you have run embedding.py to create chunks_with_metadata.pkl and faiss_index.index")
         return None
 
 def answer_question(question, retriever=None, initial_k_for_reranking=10, final_k=5, debug=True):
@@ -316,13 +322,13 @@ def answer_question(question, retriever=None, initial_k_for_reranking=10, final_
         # For non-debug, directly call the main re-ranking function
         results = retriever.retrieve_and_rerank(question, initial_k_for_reranking, final_k)
     
-    # Return top chunks for LLM
-    top_chunks = [result['chunk_text'] for result in results] # Use 'chunk_text'
-    return top_chunks
+    # Return top chunks (which are dictionaries now) for LLM
+    # The format_for_llm function will extract 'chunk_text'
+    return results
 
-def format_for_llm(question, chunks):
+def format_for_llm(question, chunks): # chunks will now be a list of dictionaries
     """Format question and chunks for LLM input."""
-    context = "\n\n".join([f"CHUNK {i+1}:\n{chunk}" for i, chunk in enumerate(chunks)])
+    context = "\n\n".join([f"CHUNK {i+1} (Page Range: {chunk['metadata'].get('page_range', 'N/A')}):\n{chunk['chunk_text']}" for i, chunk in enumerate(chunks)])
     return f"""
 প্রশ্ন: {question}
 
@@ -344,7 +350,8 @@ if __name__ == "__main__":
         test_questions = [
             "বিয়ের সময় কল্যাণীর প্রকৃত বয়স কত ছিল?",
             "অনুপমের চরিত্র কেমন?",
-            "মামার ভূমিকা কী?"
+            "মামার ভূমিকা কী?",
+            "কল্যাণী কেন বিয়েতে রাজি ছিল না?"
         ]
         
         INITIAL_K_FOR_RERANKING = 40 
@@ -369,7 +376,7 @@ if __name__ == "__main__":
             sys.stdout = captured_output = io.StringIO()
             
             # Run the retrieval with debug
-            chunks = answer_question(question, retriever, 
+            results = answer_question(question, retriever, 
                                      initial_k_for_reranking=INITIAL_K_FOR_RERANKING, 
                                      final_k=FINAL_K_FOR_LLM, 
                                      debug=True)
@@ -383,11 +390,12 @@ if __name__ == "__main__":
             all_output.append(debug_output)
             
             # Add LLM prompt section
-            llm_section = f"\n📝 LLM PROMPT (with {len(chunks)} chunks):\n" + "-"*40
+            llm_section = f"\n📝 LLM PROMPT (with {len(results)} chunks):\n" + "-"*40
             print(llm_section)
             all_output.append(llm_section)
             
-            prompt = format_for_llm(question, chunks)
+            # Pass the list of dictionaries (results) directly to format_for_llm
+            prompt = format_for_llm(question, results) 
             print(prompt)
             all_output.append(prompt)
         

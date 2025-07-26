@@ -1,302 +1,544 @@
-from langchain.text_splitter import RecursiveCharacterTextSplitter
 import re
 import json
 from datetime import datetime
+from langchain.text_splitter import RecursiveCharacterTextSplitter, CharacterTextSplitter
 
+# --- Your existing utility functions (keep them as they are) ---
 def clean_chunk_lines(chunk_lines):
-    """Remove lines that look like standalone numbers or gibberish page markers."""
     cleaned = []
     for line in chunk_lines:
-        original_line = line # Keep original for printing
-        line = line.strip() # Work with stripped line for checks
+        original_line = line
+        line = line.strip()
 
-        # Check 1: Consists mostly of digits, punctuation, or is empty
         if re.match(r'^[\d\s\-\,\.\?\!\u09E6-\u09EF]*$', line):
-            print(f"DEBUG: Removing (digits/punc/empty): '{original_line}'")
             continue
-        # Check 2: Very short lines
         if len(line) < 3:
-            print(f"DEBUG: Removing (too short): '{original_line}'")
             continue
-        # Check 3: Mostly punctuation
         if len(re.sub(r'[^\w\u0980-\u09FF]', '', line)) < 2:
-            print(f"DEBUG: Removing (mostly punc): '{original_line}'")
             continue
-        cleaned.append(original_line) # Append original line if it passes all checks
+        cleaned.append(original_line)
     return cleaned
 
 def preprocess_text(text):
-    """Clean the text before chunking by removing noise lines"""
     lines = text.split('\n')
     cleaned = clean_chunk_lines(lines)
     cleaned_text = '\n'.join(cleaned)
     
-    # Additional cleaning
-    # Remove excessive whitespace
     cleaned_text = re.sub(r'\n{3,}', '\n\n', cleaned_text)
-    # Remove trailing spaces
     cleaned_text = re.sub(r' +\n', '\n', cleaned_text)
     
     return cleaned_text
 
-def check_chunk_continuity(chunks):
-    """Check if chunks maintain proper context continuity"""
-    issues = []
-    for i in range(len(chunks)-1):
-        tail = chunks[i].strip().split('\n')[-1]
-        head = chunks[i+1].strip().split('\n')[0]
-        
-        print(f"CHUNK {i+1} ➡ CHUNK {i+2}")
-        print(f"END: {tail}")
-        print(f"START: {head}")
-        
-        # Enhanced heuristic: If head starts with Bengali alphabet, uppercase, or dialogue marker
-        if re.match(r'^[অ-হA-Z"\'—]', head):
-            print("✅ Context likely maintained.\n")
-        else:
-            print("⚠️ Possible context cut.\n")
-            issues.append((i, i+1, tail, head))
-    
-    return issues
-
-def detect_mid_sentence_splits(chunks):
-    """Detect chunks that start with sentence fragments"""
-    issues = []
-    fragment_starts = (
-        "বা ", "ও ", "এবং ", "তবে ", "কিন্তু ", "যে ", "এই ", "সেই ", 
-        "তার ", "যার ", "করে ", "হয়ে ", "থেকে ", "আর ", "যদিও ",
-        "and ", "but ", "or ", "then ", "however ", "which ", "that "
-    )
-    
-    for i in range(len(chunks)-1):
-        end_chunk = chunks[i].strip().split('\n')[-1]
-        start_next = chunks[i+1].strip().split('\n')[0]
-        
-        if start_next.startswith(fragment_starts):
-            issues.append((i, i+1, end_chunk, start_next))
-    
-    return issues
-
-def merge_chunks_if_broken(chunks):
-    """Merge chunk i+1 into chunk i if continuity check fails"""
-    merged_chunks = []
-    i = 0
-    
-    while i < len(chunks):
-        chunk = chunks[i].strip()
-        
-        if i < len(chunks) - 1:
-            last_line = chunk.split('\n')[-1].strip()
-            next_first_line = chunks[i+1].strip().split('\n')[0].strip()
-            
-            # Clean potential noise lines first
-            last_line_clean = re.sub(r'[\d\s\-\,\.\?\!]*', '', last_line)
-            next_first_line_clean = re.sub(r'[\d\s\-\,\.\?\!]*', '', next_first_line)
-            
-            # Enhanced merging conditions
-            should_merge = (
-                # Next chunk starts with fragment
-                not re.match(r'^[অ-হA-Z"\'—]', next_first_line_clean) or
-                # Current chunk ends abruptly (no sentence terminator)
-                not re.search(r'[।\.!\?]$', last_line.strip()) or
-                # Next chunk is very short (likely incomplete)
-                len(chunks[i+1].strip()) < 100
-            )
-            
-            if should_merge:
-                merged_chunk = chunk + "\n" + chunks[i+1].strip()
-                merged_chunks.append(merged_chunk)
-                i += 2  # Skip next chunk since merged
-                continue
-        
-        merged_chunks.append(chunk)
-        i += 1
-    
-    return merged_chunks
-
-def merge_fragmented_chunks(chunks):
-    """Merge chunks that start with connecting words or fragments"""
-    merged_chunks = []
-    buffer = chunks[0]
-
-    fragment_starts = (
-        "বা ", "ও ", "এবং ", "তবে ", "কিন্তু ", "আর ", "যদিও ", 
-        "যে ", "এই ", "সেই ", "তার ", "যার ", "করে ", "হয়ে ", "থেকে ",
-        "and ", "but ", "or ", "then ", "however ", "which ", "that "
-    )
-
-    for i in range(1, len(chunks)):
-        start_line = chunks[i].strip().split('\n')[0]
-        
-        if start_line.startswith(fragment_starts):
-            buffer += " " + chunks[i]
-        else:
-            merged_chunks.append(buffer)
-            buffer = chunks[i]
-
-    merged_chunks.append(buffer)
-    return merged_chunks
-
-def chunk_text_enhanced(text, chunk_size=300, chunk_overlap=150, preserve_dialogue=True):
-    """Enhanced chunking with better sentence awareness"""
-    
-    # Preserve dialogue and poetry formatting
-    if preserve_dialogue:
-        separators = ["।", ".", "!", "?", "\n\n"]  # Avoid breaking on single newlines
-    else:
-        separators = ["\n\n", "\n", "।", ".", "!", "?"]
-    
-    text_splitter = RecursiveCharacterTextSplitter(
-        separators=separators,
-        chunk_size=chunk_size,
-        chunk_overlap=chunk_overlap,
-        length_function=len,
-        add_start_index=False
-    )
-    
-    chunks = text_splitter.split_text(text)
-    return chunks
-
-def validate_chunks(chunks):
-    """Unit testing for chunk quality"""
+def validate_chunks(chunks_content_only):
     issues = []
     
-    # Test 1: No mid-sentence splits
-    mid_sentence_issues = detect_mid_sentence_splits(chunks)
+    mid_sentence_issues = detect_mid_sentence_splits(chunks_content_only)
     if mid_sentence_issues:
         issues.append(f"Found {len(mid_sentence_issues)} mid-sentence splits")
     
-    # Test 2: Reasonable chunk sizes
-    too_small = [i for i, chunk in enumerate(chunks) if len(chunk) < 50]
-    too_large = [i for i, chunk in enumerate(chunks) if len(chunk) > 2000]
+    too_small = [i for i, chunk in enumerate(chunks_content_only) if len(chunk) < 50]
+    too_large = [i for i, chunk in enumerate(chunks_content_only) if len(chunk) > 2000]
     
     if too_small:
         issues.append(f"Found {len(too_small)} chunks that are too small (< 50 chars)")
     if too_large:
         issues.append(f"Found {len(too_large)} chunks that are too large (> 2000 chars)")
     
-    # Test 3: No empty chunks
-    empty_chunks = [i for i, chunk in enumerate(chunks) if not chunk.strip()]
+    empty_chunks = [i for i, chunk in enumerate(chunks_content_only) if not chunk.strip()]
     if empty_chunks:
         issues.append(f"Found {len(empty_chunks)} empty chunks")
     
     return issues
 
-def save_chunks_with_metadata(chunks, output_file='chunk_output.txt', metadata_file='chunk_metadata.json'):
-    """Save chunks with comprehensive metadata"""
+# Helper functions for `validate_chunks`
+def check_chunk_continuity(chunks):
+    pass
+
+def detect_mid_sentence_splits(chunks):
+    issues = []
+    # Expanded fragment_starts to better detect mid-sentence breaks
+    fragment_starts = (
+        "বা ", "ও ", "এবং ", "তবে ", "কিন্তু ", "যে ", "এই ", "সেই ",
+        "তার ", "যার ", "করে ", "হয়ে ", "থেকে ", "আর ", "যদিও ", "যখন ", "যেহেতু ",
+        "কারণ ", "ফলে ", "সুতরাং ", "তারপর ", "তখন ", "তথা ", "যথা ",
+        "and ", "but ", "or ", "then ", "however ", "which ", "that ", "because ", "so "
+    )
+    for i in range(len(chunks)-1):
+        # Check if the current chunk ends without sentence punctuation and the next one starts with a fragment
+        current_chunk_end = chunks[i].strip()
+        if not current_chunk_end.endswith(('।', '.', '!', '?')) and len(current_chunk_end) > 0: # Ensure it doesn't end properly
+            start_next = chunks[i+1].strip().split('\n')[0].lower() # Check the beginning of the next chunk
+            if start_next.startswith(fragment_starts):
+                issues.append((i, i+1, current_chunk_end[-50:], start_next[:50])) # Show last 50 chars of current, first 50 of next
+    return issues
+
+def merge_chunks_if_broken(chunks):
+    pass
+
+def merge_fragmented_chunks(chunks):
+    pass
+# --- End of existing utility functions ---
+
+# --- NEW: Structural Segmentation and Chunking ---
+
+def preprocess_text_for_segment_detection(text):
+    """
+    A lighter preprocessing specifically for segment detection.
+    Removes common header/footer lines that might interfere with pattern matching,
+    but keeps enough context for heuristics.
+    """
+    lines = text.split('\n')
+    cleaned_lines = []
+    for line in lines:
+        stripped_line = line.strip()
+        if len(stripped_line) < 2 and re.match(r'^[\d\s]*$', stripped_line):
+            continue
+        if "অনলাইন ব্যাচ" in stripped_line or "কলকরো ৬" in stripped_line:
+            continue
+        if re.match(r'^[\s\]\d\?\-–—]*$', stripped_line) and len(stripped_line) < 5:
+            continue
+        cleaned_lines.append(line)
+    return '\n'.join(cleaned_lines)
+
+def segment_document_by_type(pages_data):
+    """
+    Analyzes page data to identify logical story sections, question sections,
+    and vocabulary/notes sections.
+    This is a heuristic-based function and might need significant fine-tuning
+    based on the exact patterns in your PDF.
+    """
+    segments = []
+    current_segment_type = None  # 'story', 'questions', 'vocabulary'
+    current_segment_text = ""
+    current_segment_start_page = 0
+    story_counter = 0 # To track unique story IDs
+    vocabulary_counter = 0 # To track unique vocabulary sections
+
+    for i, page_data in enumerate(pages_data):
+        page_num = page_data['page_num']
+        page_text = page_data['text']
+
+        cleaned_page_text_for_detection = preprocess_text_for_segment_detection(page_text)
+
+        is_vocabulary_page = bool(re.search(r'শব্দার্থ\s*ও\s*টীকা|মূল\s*শব্দ\s*শব্দের\s*অর্থ\s*ও\s*ব্যাখ্যা', cleaned_page_text_for_detection, re.MULTILINE))
+
+        pattern_mcq_like = r'(?m)^\s*(\d+[\u09E6-\u09EF]*|[কখগঘ]|[a-zA-Z])\s*[।\.]?\s*.*?\n\s*(\([কখগঘa-zA-Z]\)|\([a-zA-Z]\))'
+        pattern_long_q_like = r'(?m)^\s*(পাঠ্যপুস্তকের\s*প্রশ্ন|বহুনির্বাচনী|উদ্দীপক|প্রশ্নের\s*উত্তর|দীর্ঘ\s*প্রশ্নাবলি)' # Added common question headings
+        is_question_page = bool(re.search(pattern_mcq_like, cleaned_page_text_for_detection)) or \
+                           bool(re.search(pattern_long_q_like, cleaned_page_text_for_detection))
+
+        is_story_page = bool(re.search(r'মূল\s*গল্প|অনুপমের\s*বযস\s*সাতাশ', cleaned_page_text_for_detection))
+        # Heuristic for first page if it doesn't match other types
+        if i == 0 and not (is_question_page or is_vocabulary_page):
+            is_story_page = True
+
+        new_segment_type = None
+        # Prioritize question and vocabulary pages as they have distinct formats
+        if is_question_page:
+            new_segment_type = 'questions'
+        elif is_vocabulary_page:
+            new_segment_type = 'vocabulary'
+        elif is_story_page:
+            new_segment_type = 'story'
+        else:
+            # If no specific type detected, assume it continues the previous type or is unclassified
+            if current_segment_type:
+                new_segment_type = current_segment_type
+            else:
+                new_segment_type = 'unclassified' # Should ideally not happen often
+
+        if new_segment_type != current_segment_type and current_segment_type is not None:
+            segment_id = ""
+            if current_segment_type == 'story':
+                story_counter += 1
+                segment_id = f"story_{story_counter}"
+            elif current_segment_type == 'questions':
+                # Link questions to the *previous* story segment
+                segment_id = f"questions_for_story_{story_counter}"
+            elif current_segment_type == 'vocabulary':
+                vocabulary_counter += 1
+                segment_id = f"vocabulary_{vocabulary_counter}"
+            elif current_segment_type == 'unclassified':
+                segment_id = f"unclassified_segment_{len(segments) + 1}"
+
+            segments.append({
+                "type": current_segment_type,
+                "id": segment_id,
+                "start_page": current_segment_start_page,
+                "end_page": page_num - 1,
+                "text": current_segment_text.strip()
+            })
+            
+            current_segment_text = page_text
+            current_segment_start_page = page_num
+            current_segment_type = new_segment_type
+        else:
+            if current_segment_text:
+                current_segment_text += "\n" + page_text
+            else:
+                current_segment_text = page_text
+                current_segment_start_page = page_num
+                current_segment_type = new_segment_type
     
-    # Calculate statistics
-    chunk_stats = {
-        'total_chunks': len(chunks),
-        'avg_length': sum(len(chunk) for chunk in chunks) / len(chunks),
-        'min_length': min(len(chunk) for chunk in chunks),
-        'max_length': max(len(chunk) for chunk in chunks),
-        'total_characters': sum(len(chunk) for chunk in chunks),
-        'processing_date': datetime.now().isoformat()
-    }
+    # Finalize the last segment
+    if current_segment_text:
+        segment_id = ""
+        if current_segment_type == 'story':
+            story_counter += 1
+            segment_id = f"story_{story_counter}"
+        elif current_segment_type == 'questions':
+            # Link questions to the *last* story segment encountered
+            segment_id = f"questions_for_story_{story_counter}"
+        elif current_segment_type == 'vocabulary':
+            vocabulary_counter += 1
+            segment_id = f"vocabulary_{vocabulary_counter}"
+        elif current_segment_type == 'unclassified':
+            segment_id = f"unclassified_segment_{len(segments) + 1}"
+
+        segments.append({
+            "type": current_segment_type,
+            "id": segment_id,
+            "start_page": current_segment_start_page,
+            "end_page": pages_data[-1]['page_num'],
+            "text": current_segment_text.strip()
+        })
     
-    # Save chunks with metadata
+    segments = [s for s in segments if s['text'].strip()]
+    
+    return segments
+
+def chunk_segment(segment_type, segment_text, segment_id, page_range):
+    chunks_with_metadata = []
+
+    segment_text = preprocess_text(segment_text)
+
+    # --- Fine-tuning Suggestion 1: Enhance common_separators ---
+    # Add an empty string "" as the last resort separator. This ensures that
+    # if no other separators are found, the text will be split character by character,
+    # preventing excessively large chunks that cannot be broken otherwise.
+    common_separators = ["।", ".", "!", "?", "\n\n", "\n", "—", ",", " ", ""]
+
+    if segment_type == 'story':
+        story_splitter = RecursiveCharacterTextSplitter(
+            separators=common_separators,
+            chunk_size=700,
+            chunk_overlap=200,
+            length_function=len
+        )
+        sub_chunks = story_splitter.split_text(segment_text)
+        for i, sub_chunk in enumerate(sub_chunks):
+            if sub_chunk.strip():
+                chunks_with_metadata.append({
+                    "content": sub_chunk.strip(),
+                    "metadata": {
+                        "type": "story_segment",
+                        "segment_id": segment_id,
+                        "chunk_idx": i,
+                        "page_range": f"{page_range[0]}-{page_range[1]}",
+                        "source": "textbook_story"
+                    }
+                })
+
+    elif segment_type == 'questions':
+        question_pattern = re.compile(
+            r'(?m)^(\s*(\d+[\u09E6-\u09EF]*|[কখগঘ]|[a-zA-Z])\s*[।\.]?\s*.*?)'
+            r'(\n\s*(\([কখগঘa-zA-Z]\)\s*.*?)+)?'
+            r'(?=\n\s*(\d+[\u09E6-\u09EF]*|[কখগঘ]|[a-zA-Z])\s*[।\.]?|\Z)',
+            re.DOTALL
+        )
+
+        # Handle introduction text before questions
+        intro_text_match = re.match(r'^(.*?)(?=\n*\s*(?:\d+[\u09E6-\u09EF]*|[কখগঘ]|[a-zA-Z])\s*[।\.]?)', segment_text, re.DOTALL)
+        if intro_text_match and intro_text_match.group(1).strip():
+            intro_text = intro_text_match.group(1).strip()
+            if len(intro_text) > 100: # Increase threshold for intro text chunking
+                chunks_with_metadata.append({
+                    "content": intro_text,
+                    "metadata": {
+                        "type": "question_introduction",
+                        "segment_id": segment_id,
+                        "chunk_idx": 0,
+                        "page_range": f"{page_range[0]}-{page_range[1]}",
+                        "source": "textbook_question_intro"
+                    }
+                })
+                segment_text = segment_text[len(intro_text_match.group(0)):].strip()
+
+        # Handle passages related to questions
+        passage_for_q_match = re.search(r'^(.*?)(?=\n*\s*(\d+[\u09E6-\u09EF]*|[কখগঘ]|[a-zA-Z])\s*[।\.]?|\Z)', segment_text, re.DOTALL)
+        if passage_for_q_match and passage_for_q_match.group(1).strip() and not re.match(r'^\s*(\d+[\u09E6-\u09EF]*|[কখগঘ]|[a-zA-Z])', passage_for_q_match.group(1).strip()):
+            passage_text = passage_for_q_match.group(1).strip()
+            if len(passage_text) > 100: # Increase threshold for passage text chunking
+                chunks_with_metadata.append({
+                    "content": passage_text,
+                    "metadata": {
+                        "type": "question_passage",
+                        "segment_id": segment_id,
+                        "chunk_idx": len(chunks_with_metadata),
+                        "page_range": f"{page_range[0]}-{page_range[1]}",
+                        "source": "textbook_question_passage"
+                    }
+                })
+                segment_text = segment_text[len(passage_for_q_match.group(0)):].strip()
+
+        question_idx_counter = 0
+        for match in question_pattern.finditer(segment_text):
+            full_question_text = match.group(0).strip()
+            if not full_question_text:
+                continue
+
+            question_num_match = re.match(r'^\s*(\d+[\u09E6-\u09EF]*)', full_question_text)
+            question_num = question_num_match.group(1).strip() if question_num_match else "N/A"
+
+            chunks_with_metadata.append({
+                "content": full_question_text,
+                "metadata": {
+                    "type": "question",
+                    "segment_id": segment_id,
+                    "question_number": question_num,
+                    "chunk_idx": question_idx_counter,
+                    "page_range": f"{page_range[0]}-{page_range[1]}",
+                    "source": "textbook_question"
+                }
+            })
+            question_idx_counter += 1
+
+        # Fallback for any remaining unparsed text in question section
+        if not chunks_with_metadata and segment_text.strip():
+            general_splitter = RecursiveCharacterTextSplitter(
+                separators=common_separators,
+                chunk_size=700,
+                chunk_overlap=200
+            )
+            general_chunks = general_splitter.split_text(segment_text)
+            for i, gc in enumerate(general_chunks):
+                if gc.strip():
+                    chunks_with_metadata.append({
+                        "content": gc.strip(),
+                        "metadata": {
+                            "type": "unclassified_question_text",
+                            "segment_id": segment_id,
+                            "chunk_idx": i,
+                            "page_range": f"{page_range[0]}-{page_range[1]}",
+                            "source": "textbook_question_general"
+                        }
+                    })
+
+    elif segment_type == 'vocabulary':
+        vocabulary_entry_pattern = re.compile(
+            r'^\s*([^\n:]+?)\s*[:—]\s*(.*?)(?=\n\s*[^\n:]+?\s*[:—]|\Z)',
+            re.MULTILINE | re.DOTALL
+        )
+        line_by_line_splitter = RecursiveCharacterTextSplitter(
+            separators=["\n\n", "\n", ""], # Added "" here too for safety
+            chunk_size=150,
+            chunk_overlap=0
+        )
+
+        vocab_idx_counter = 0
+        found_specific_entries = False
+
+        for match in vocabulary_entry_pattern.finditer(segment_text):
+            key_term = match.group(1).strip()
+            definition = match.group(2).strip()
+
+            if key_term and definition:
+                full_entry = f"{key_term}: {definition}"
+                chunks_with_metadata.append({
+                    "content": full_entry,
+                    "metadata": {
+                        "type": "vocabulary_entry",
+                        "segment_id": segment_id,
+                        "key_term": key_term,
+                        "chunk_idx": vocab_idx_counter,
+                        "page_range": f"{page_range[0]}-{page_range[1]}",
+                        "source": "textbook_vocabulary_structured"
+                    }
+                })
+                vocab_idx_counter += 1
+                found_specific_entries = True
+
+        if not found_specific_entries or vocab_idx_counter == 0:
+            print(f"DEBUG: Falling back to line-by-line chunking for vocabulary segment '{segment_id}'.")
+            general_vocab_chunks = line_by_line_splitter.split_text(segment_text)
+            for i, gc in enumerate(general_vocab_chunks):
+                if gc.strip():
+                    chunks_with_metadata.append({
+                        "content": gc.strip(),
+                        "metadata": {
+                            "type": "vocabulary_entry_general",
+                            "segment_id": segment_id,
+                            "key_term": "N/A",
+                            "chunk_idx": i,
+                            "page_range": f"{page_range[0]}-{page_range[1]}",
+                            "source": "textbook_vocabulary_general"
+                        }
+                    })
+    
+    # --- Fine-tuning Suggestion 2: Hard Re-chunking for excessively large chunks ---
+    # This ensures that no chunk, even after initial splitting, exceeds a strict maximum size.
+    final_post_processed_chunks = []
+    MAX_HARD_CHUNK_SIZE = 1800 # Adjusted maximum chunk size to be below 2000
+
+    for chunk_item in chunks_with_metadata:
+        if len(chunk_item['content']) > MAX_HARD_CHUNK_SIZE:
+            print(f"DEBUG: Re-chunking excessively large chunk (size: {len(chunk_item['content'])} chars) from segment '{segment_id}' type '{chunk_item['metadata']['type']}'")
+            # Use CharacterTextSplitter for a brute-force split to respect max size
+            hard_splitter = CharacterTextSplitter(
+                chunk_size=MAX_HARD_CHUNK_SIZE - 100, # Chunk into pieces slightly smaller than MAX_HARD_CHUNK_SIZE
+                chunk_overlap=50, # Maintain some overlap for re-chunked parts
+                separator="" # Force character-level split if needed
+            )
+            sub_chunks = hard_splitter.split_text(chunk_item['content'])
+            
+            for j, sub_chunk in enumerate(sub_chunks):
+                if sub_chunk.strip():
+                    # Create new metadata for re-chunked parts
+                    new_metadata = {**chunk_item['metadata']}
+                    new_metadata['type'] = new_metadata['type'] + "_rechunked" # Indicate it was re-chunked
+                    new_metadata['chunk_idx'] = f"{chunk_item['metadata']['chunk_idx']}_{j}" # New index for sub-chunk
+                    final_post_processed_chunks.append({
+                        "content": sub_chunk.strip(),
+                        "metadata": new_metadata
+                    })
+        else:
+            final_post_processed_chunks.append(chunk_item)
+    
+    chunks_with_metadata = final_post_processed_chunks # Update the list for subsequent filtering
+    
+    # Post-processing: Filter out very small chunks or merge them
+    final_chunks = []
+    i = 0
+    while i < len(chunks_with_metadata):
+        chunk = chunks_with_metadata[i]
+        if len(chunk['content']) < 50 and i < len(chunks_with_metadata) - 1:
+            next_chunk = chunks_with_metadata[i+1]
+            # Ensure they are from the same segment and type to merge logically
+            if chunk['metadata']['segment_id'] == next_chunk['metadata']['segment_id'] and \
+               chunk['metadata']['type'].replace("_rechunked", "") == next_chunk['metadata']['type'].replace("_rechunked", ""): # Compare original type
+                merged_content = chunk['content'] + "\n" + next_chunk['content']
+                merged_chunk = {
+                    "content": merged_content,
+                    "metadata": {
+                        **chunk['metadata'],
+                        "chunk_idx": chunk['metadata']['chunk_idx'],
+                    }
+                }
+                final_chunks.append(merged_chunk)
+                i += 2
+            else:
+                if len(chunk['content']) >= 20:
+                    final_chunks.append(chunk)
+                i += 1
+        else:
+            final_chunks.append(chunk)
+            i += 1
+
+    return final_chunks
+
+
+def save_chunks_with_metadata_to_json(chunks_data, output_file='structured_chunks.json'):
+    """
+    Saves chunks with comprehensive metadata to a JSON file.
+    Each item in chunks_data is expected to be a dictionary with 'content' and 'metadata'.
+    """
     try:
         with open(output_file, 'w', encoding='utf-8') as f:
-            for i, chunk in enumerate(chunks):
-                f.write(f"=== CHUNK {i+1} ===\n")
-                f.write(f"[Length: {len(chunk)} chars]\n")
-                f.write(f"[Words: ~{len(chunk.split())} words]\n")
-                f.write(f"[Lines: {len(chunk.split(chr(10)))} lines]\n")
-                f.write("-" * 30 + "\n")
-                f.write(chunk)
-                f.write(f"\n\n{'='*50}\n\n")
+            json.dump(chunks_data, f, ensure_ascii=False, indent=2)
+        print(f"Structured chunks saved to: '{output_file}'")
         
-        print(f"✅ Chunks saved to: {output_file}")
-        
-        # Save metadata
-        with open(metadata_file, 'w', encoding='utf-8') as f:
-            json.dump(chunk_stats, f, ensure_ascii=False, indent=2)
-        
-        print(f"✅ Metadata saved to: {metadata_file}")
-        return chunk_stats
-        
-    except Exception as e:
-        print(f"❌ Error saving chunks: {e}")
-        return None
+        total_chunks = len(chunks_data)
+        if total_chunks > 0:
+            total_chars = sum(len(chunk['content']) for chunk in chunks_data)
+            avg_length = total_chars / total_chunks
+            min_length = min(len(chunk['content']) for chunk in chunks_data)
+            max_length = max(len(chunk['content']) for chunk in chunks_data)
+            print(f"   Final Statistics:")
+            print(f"   Total chunks: {total_chunks}")
+            print(f"   Average length: {avg_length:.0f} characters")
+            print(f"   Size range: {min_length} - {max_length} characters")
+            print(f"   Total content: {total_chars} characters")
+        else:
+            print(" No chunks generated.")
 
+        return True
+            
+    except Exception as e:
+        print(f" Error saving structured chunks: {e}")
+        return False
+
+# --- Main pipeline function ---
 def main():
-    """Main chunking pipeline with all enhancements"""
+    """Main chunking pipeline with structural segmentation and metadata."""
     
-    # Load the extracted text
     try:
-        with open('extracted_output.txt', 'r', encoding='utf-8') as f:
-            knowledge_base_text = f.read()
-        print("✅ Text loaded from extracted_output.txt")
+        # Load the structured extracted text from ocr_pdf_dynamic.py output
+        with open('extracted_pages_data.json', 'r', encoding='utf-8') as f:
+            pages_data = json.load(f)
+        print(" Structured page data loaded from 'extracted_pages_data.json'")
     except FileNotFoundError:
-        print("❌ extracted_output.txt not found. Please run extract.py first.")
-        return
+        print(" 'extracted_pages_data.json' not found. Please run ocr_pdf_dynamic.py first.")
+        return []
+    except json.JSONDecodeError:
+        print(" Error decoding 'extracted_pages_data.json'. Ensure it's valid JSON.")
+        return []
     
-    print(f"📄 Original text length: {len(knowledge_base_text)} characters")
+    print(f" Processing {len(pages_data)} pages.")
+
+    # Step 1: Segment the document into logical story and question blocks
+    print("\n Segmenting document into story and question blocks...")
+    segments = segment_document_by_type(pages_data)
+    print(f" Document segmented into {len(segments)} logical blocks.")
+    for segment in segments:
+        text_preview = segment['text'][:100].replace('\n', ' ') + '...' if len(segment['text']) > 100 else segment['text'].replace('\n', ' ')
+        print(f"   - Type: {segment['type']}, ID: {segment['id']}, Pages: {segment['start_page']}-{segment['end_page']} | Content Preview: '{text_preview}'")
+
+    all_final_chunks_with_metadata = []
+
+    # Step 2: Chunk each segment based on its type and add metadata
+    print("\n Chunking each segment with specific rules and metadata...")
+    for segment in segments:
+        cleaned_segment_text = preprocess_text(segment['text'])
+        
+        chunked_results = chunk_segment(
+            segment_type=segment['type'],
+            segment_text=cleaned_segment_text,
+            segment_id=segment['id'],
+            page_range=(segment['start_page'], segment['end_page'])
+        )
+        all_final_chunks_with_metadata.extend(chunked_results)
     
-    # Step 1: Preprocess text (NEW)
-    print("\n🔧 Preprocessing text...")
-    cleaned_text = preprocess_text(knowledge_base_text)
-    print(f"✅ Text cleaned: {len(knowledge_base_text)} → {len(cleaned_text)} characters")
-    
-    # Step 2: Enhanced chunking
-    print("\n📝 Creating initial chunks...")
-    text_chunks = chunk_text_enhanced(cleaned_text, preserve_dialogue=True)
-    print(f"✅ Text divided into {len(text_chunks)} chunks.")
-    
-    # Step 3: Check continuity
-    print("\n📋 Checking chunk continuity...")
-    continuity_issues = check_chunk_continuity(text_chunks)
-    
-    # Step 4: Detect mid-sentence splits
-    print("\n🔍 Detecting mid-sentence splits...")
-    split_issues = detect_mid_sentence_splits(text_chunks)
-    if split_issues:
-        print(f"Found {len(split_issues)} potential mid-sentence splits:")
-        for i1, i2, end_c, start_c in split_issues[:3]:  # Show first 3
-            print(f"  CHUNK {i1+1} → CHUNK {i2+1}")
-            print(f"  End: {end_c[:50]}...")
-            print(f"  Start: {start_c[:50]}...")
-    else:
-        print("✅ No mid-sentence splits detected!")
-    
-    # Step 5: Merge broken chunks
-    print("\n🔧 Merging broken chunks...")
-    merged_chunks = merge_chunks_if_broken(text_chunks)
-    print(f"✅ Merged broken chunks: {len(text_chunks)} → {len(merged_chunks)}")
-    
-    # Step 6: Merge fragmented chunks
-    print("\n🔧 Merging fragmented chunks...")
-    final_chunks = merge_fragmented_chunks(merged_chunks)
-    print(f"✅ Final merge: {len(merged_chunks)} → {len(final_chunks)}")
-    
-    # Step 7: Validate final chunks (NEW)
-    print("\n✅ Validating final chunks...")
-    validation_issues = validate_chunks(final_chunks)
+    print(f"Total chunks created: {len(all_final_chunks_with_metadata)}")
+
+    # Step 3: Validate final chunks (extract content strings for validation)
+    raw_contents_for_validation = [c['content'] for c in all_final_chunks_with_metadata]
+    print("\n Validating final chunks...")
+    validation_issues = validate_chunks(raw_contents_for_validation)
     if validation_issues:
-        print("⚠️ Validation issues found:")
+        print(" Validation issues found:")
         for issue in validation_issues:
-            print(f"  - {issue}")
+            print(f"   - {issue}")
     else:
-        print("✅ All validation tests passed!")
+        print(" All validation tests passed!")
+
+    # Step 4: Save structured chunks to a JSON file
+    print("\n Saving chunks with metadata...")
+    save_chunks_with_metadata_to_json(all_final_chunks_with_metadata)
     
-    # Step 8: Save with metadata (ENHANCED)
-    print("\n💾 Saving chunks with metadata...")
-    stats = save_chunks_with_metadata(final_chunks)
+    # Step 5: Show sample chunk
+    if all_final_chunks_with_metadata:
+        print(f"\n Sample chunk (first 200 chars):")
+        sample_chunk = all_final_chunks_with_metadata[0]
+        print(f"--- CHUNK 1 ---")
+        print(f"Type: {sample_chunk['metadata']['type']}")
+        print(f"Segment ID: {sample_chunk['metadata']['segment_id']}")
+        print(f"Page Range: {sample_chunk['metadata']['page_range']}")
+        if sample_chunk['metadata']['type'] == 'question':
+            print(f"Question No: {sample_chunk['metadata'].get('question_number', 'N/A')}")
+        print(f"Content Preview: {sample_chunk['content'][:200]}...")
+        print("-" * 30)
     
-    if stats:
-        print(f"\n📊 Final Statistics:")
-        print(f"  Total chunks: {stats['total_chunks']}")
-        print(f"  Average length: {stats['avg_length']:.0f} characters")
-        print(f"  Size range: {stats['min_length']} - {stats['max_length']} characters")
-        print(f"  Total content: {stats['total_characters']} characters")
-    
-    # Step 9: Show sample chunk
-    if final_chunks:
-        print(f"\n📄 Sample chunk (first 200 chars):")
-        print(f"'{final_chunks[0][:200]}...'")
-    
-    return final_chunks
+    return all_final_chunks_with_metadata
 
 if __name__ == "__main__":
     final_chunks = main()

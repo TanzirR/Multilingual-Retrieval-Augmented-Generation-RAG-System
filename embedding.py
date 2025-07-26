@@ -2,34 +2,23 @@ import faiss
 import pickle
 import numpy as np
 from sentence_transformers import SentenceTransformer
+import json # Import json to load the structured chunks
 
-def load_chunks_from_file():
-    """Load chunks from chunk_output.txt, extracting only the actual text content."""
-    chunks = []
-    with open("chunk_output.txt", "r", encoding="utf-8") as f:
-        content = f.read()
-
-    # Split by the main chunk separator "=== CHUNK"
-    chunk_sections = content.split("=== CHUNK")
-
-    for section in chunk_sections[1:]:  # Skip the first empty section before the first "=== CHUNK"
-        # Each section starts with " N ===\n[Length: ...]\n[Words: ...]\n[Lines: ...]\n------------------------------\n<ACTUAL TEXT>"
-        
-        # Find the start of the actual content, which is after the "------------------------------" line.
-        # Split by the first occurrence of "------------------------------\n"
-        parts = section.split("------------------------------\n", 1)
-        
-        if len(parts) > 1:
-            actual_text_content = parts[1].strip()
-            
-            # The actual text content might also have the "================" at the end.
-            # Remove the the "================" if it's there at the very end
-            if actual_text_content.endswith("=================================================="):
-                actual_text_content = actual_text_content[:-len("==================================================")].strip()
-            
-            if actual_text_content: # Ensure it's not empty after stripping
-                chunks.append(actual_text_content)
-    return chunks
+def load_chunks_from_file(file_path="structured_chunks.json"):
+    """
+    Load chunks from structured_chunks.json, preserving all content and metadata.
+    """
+    try:
+        with open(file_path, "r", encoding="utf-8") as f:
+            chunks_with_metadata = json.load(f)
+        print(f" Loaded {len(chunks_with_metadata)} chunks with metadata from '{file_path}'")
+        return chunks_with_metadata
+    except FileNotFoundError:
+        print(f" Error: '{file_path}' not found. Please ensure the chunking process has run and the file exists.")
+        return []
+    except json.JSONDecodeError:
+        print(f" Error: Could not decode JSON from '{file_path}'. Check file format.")
+        return []
 
 def preprocess_for_embedding(text):
     """Preprocess text for E5 embedding"""
@@ -43,14 +32,22 @@ def create_embeddings_and_index():
     model_name = "intfloat/multilingual-e5-base"
     model = SentenceTransformer(model_name)
     
-    # Load chunks
+    # Load chunks (now includes metadata)
     print("Loading chunks...")
-    chunks = load_chunks_from_file() # This will now load cleaner chunks
-    print(f"Loaded {len(chunks)} chunks")
+    chunks_with_metadata = load_chunks_from_file()
+    
+    if not chunks_with_metadata:
+        print("No chunks loaded. Exiting embedding creation.")
+        return
+        
+    # Extract only the content for embedding, but keep original structure for saving
+    chunk_contents = [chunk['content'] for chunk in chunks_with_metadata]
+    
+    print(f"Loaded {len(chunk_contents)} text contents for embedding.")
     
     # Create embeddings
     print("Creating embeddings...")
-    preprocessed_chunks = [preprocess_for_embedding(chunk) for chunk in chunks]
+    preprocessed_chunks = [preprocess_for_embedding(content) for content in chunk_contents]
     embeddings = model.encode(preprocessed_chunks, normalize_embeddings=True, show_progress_bar=True)
     
     # Create FAISS index
@@ -63,14 +60,14 @@ def create_embeddings_and_index():
     print("Saving FAISS index...")
     faiss.write_index(index, "faiss_index.index")
     
-    # Save chunks (these are the clean chunks now)
-    print("Saving chunks...")
-    with open("chunks.pkl", "wb") as f:
-        pickle.dump(chunks, f)
+    # Save chunks (now saving the full chunk objects with metadata)
+    print("Saving chunks with metadata...")
+    with open("chunks_with_metadata.pkl", "wb") as f:
+        pickle.dump(chunks_with_metadata, f)
     
-    print("✅ Index and chunks created successfully!")
-    print(f"📊 Index contains {index.ntotal} vectors")
-    print(f"📏 Vector dimension: {dimension}")
+    print(" Index and chunks created successfully!")
+    print(f" Index contains {index.ntotal} vectors")
+    print(f" Vector dimension: {dimension}")
 
 if __name__ == "__main__":
     create_embeddings_and_index()
