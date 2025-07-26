@@ -49,7 +49,7 @@ Follow these steps to set up and run the RAG retrieval system locally.
 
 
 2. **Extract Text (OCR):**
-   pdf_file_path = './data/bangla-text.pdf' (Make sure the pdf is inside the data directory. Update the pdf_file_path with the name of the pdf in extract_text.py)
+   In extract.py, make sure to update the pdf_file_path = './data/bangla-text.pdf' with your pdf name and directory of the pdf. 
    ```bash
    python extract_text.py
    ```
