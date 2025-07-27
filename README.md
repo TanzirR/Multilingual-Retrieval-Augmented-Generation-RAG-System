@@ -160,7 +160,7 @@ I used **EasyOCR** in conjunction with **pdf2image** to extract text from the PD
 - **Multi-language support**: Excellent support for Bengali (`bn`) and English (`en`) with good handling of mixed-language documents
 - **Better handling of stylized text**: More robust against font variations and image quality issues
 
-**Challenges**: There were some challenges faced, though EasyOCR handles many of them better than Tesseract OCR. Tesseract OCR failed to recognize both English and Bengali with a single script. EasyOCR fixed this isse.
+**Challenges**: There were some challenges faced, though EasyOCR handles many of them better than Tesseract OCR. Tesseract OCR failed to recognize both English and Bengali with a single script. EasyOCR fixed this issue.
 
 - **Stylized Text/Logos**: Elements like "10 MINUTE SCHOOL" may still be misrecognized if heavily stylized, though EasyOCR's deep learning approach is more resilient to font variations.
 - **Layout Interpretation**: While EasyOCR provides bounding box information that can help with layout understanding, complex multi-column layouts may still require careful processing to maintain proper reading order.
@@ -249,12 +249,12 @@ I used a **hybrid retrieval approach** to compare the query with stored chunks, 
 #### 1. Semantic Search (Dense Retrieval):
 
 - **Method**: The query is embedded using `intfloat/multilingual-e5-base`, and this query embedding is compared against the pre-computed embeddings of all chunks stored in a FAISS index.
-- **Similarity Method**: We use Inner Product (IP) for similarity search in FAISS. Since the embeddings are normalized (unit vectors), Inner Product is mathematically equivalent to cosine similarity, which measures the angle between two vectors. A smaller angle (closer to 0) indicates higher similarity.
+- **Similarity Method**: I used Inner Product (IP) for similarity search in FAISS. Since the embeddings are normalized (unit vectors), Inner Product is mathematically equivalent to cosine similarity, which measures the angle between two vectors. A smaller angle (closer to 0) indicates higher similarity.
 - **Storage Setup**: FAISS (Facebook AI Similarity Search) is chosen because it's an open-source library optimized for efficient similarity search and clustering of dense vectors. It allows for fast retrieval of the top-k most similar chunks from millions of embeddings.
 
 #### 2. Lexical Search (Sparse Retrieval):
 
-- **Method**: We use `BM25Okapi` (from rank_bm25 library). This method performs keyword-based matching, looking for exact term overlap and considering term frequency and inverse document frequency.
+- **Method**: I used `BM25Okapi` (from rank_bm25 library). This method performs keyword-based matching, looking for exact term overlap and considering term frequency and inverse document frequency.
 - **Why**: BM25 is excellent at capturing exact keyword matches, which semantic models might sometimes miss, especially for very specific or rare terms.
 
 #### 3. Hybrid Combination and Re-ranking:
