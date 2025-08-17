@@ -66,6 +66,10 @@ This project utilizes the following key tools and Python libraries:
 - **streamlit**: For building the interactive web-based user interface.
 - **io, sys, time, datetime**: Standard Python libraries for system interaction, timing, and date/time handling.
 
+## 📄 API Documentation
+
+Create a .env file in the root directory of this project folder. In the .env file, include your openai api key as **OPENAI_API_KEY=sk-xxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxx**
+
 ## 📝 Sample Queries and Outputs
 
 **Sample PDF**
@@ -76,10 +80,6 @@ This project utilizes the following key tools and Python libraries:
 
 **Retrieval Analysis**
 <img width="1003" height="839" alt="page_3" src="https://github.com/user-attachments/assets/72619e76-320d-42aa-9229-e288a5126fcd" />
-
-## 📄 API Documentation
-
-Create a .env file in the root directory of this project folder. In the .env file, include your openai api key as **OPENAI_API_KEY=sk-xxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxx**
 
 ## 📊 Evaluation Matrix
 
