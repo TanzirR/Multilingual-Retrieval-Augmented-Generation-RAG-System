@@ -49,7 +49,7 @@ Follow these steps to set up and run the RAG retrieval system locally.
    
    (replace the xxxxxxxx... with your actual key)
    ```
-### Running the Pipeline
+## Running the Pipeline
 
    Running main.py will run the entire RAG pipeline. As the argument, the directory and the name of the pdf is required. 
    ```bash
