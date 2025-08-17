@@ -40,7 +40,15 @@ Follow these steps to set up and run the RAG retrieval system locally.
    ```bash
    pip install -r requirements.txt
    ```
-
+5. **API Setup:**.
+   ```bash
+   Create a file named .env inside the root folder of your project (the main project directory).
+   Inside that file, add your OpenAI API key like this:
+   
+   OPENAI_API_KEY=sk-xxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxx
+   
+   (replace the xxxxxxxx... with your actual key)
+   ```
 ### Running the Pipeline
 
    Running main.py will run the entire RAG pipeline. As the argument, the directory and the name of the pdf is required. 
@@ -65,10 +73,6 @@ This project utilizes the following key tools and Python libraries:
 - **langchain**: Specifically `RecursiveCharacterTextSplitter` for intelligent text chunking.
 - **streamlit**: For building the interactive web-based user interface.
 - **io, sys, time, datetime**: Standard Python libraries for system interaction, timing, and date/time handling.
-
-## 📄 API Documentation
-
-Create a .env file in the root directory of this project folder. In the .env file, include your openai api key as **OPENAI_API_KEY=sk-xxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxx**
 
 ## 📝 Sample Queries and Outputs
 
