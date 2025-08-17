@@ -79,7 +79,7 @@ This project utilizes the following key tools and Python libraries:
 
 ## 📄 API Documentation
 
-This project does not implement direct API calls to external Large Language Models (LLMs) for answer generation. The `app.py` provides a formatted prompt that can be manually copied and pasted into any LLM interface (e.g., Google Gemini, OpenAI Playground, local LLM interfaces like Ollama/LM Studio).
+Create a .env file in the root directory of this project folder. In the .env file, include your openai api key as **OPENAI_API_KEY=sk-xxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxx**
 
 ## 📊 Evaluation Matrix
 
