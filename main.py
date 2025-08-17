@@ -5,6 +5,10 @@ import re
 import json 
 from collections import defaultdict
 import easyocr  
+import numpy as np  
+import sys
+import os
+import subprocess
 
 class DocumentProcessor:
     def __init__(self, pages_data):
@@ -89,7 +93,7 @@ def extract_text_with_ocr(pdf_path, dpi=400, lang_list=['bn', 'en']):
     print(f"Converting PDF to images at {dpi} DPI...")
     images = convert_from_path(pdf_path, dpi=dpi)
 
-    #  Initialize EasyOCR reader once
+    # ✅ Initialize EasyOCR reader once
     print("Initializing EasyOCR...")
     reader = easyocr.Reader(lang_list, gpu=True)
 
@@ -98,7 +102,7 @@ def extract_text_with_ocr(pdf_path, dpi=400, lang_list=['bn', 'en']):
         page_num = i + 1
         print(f"OCR processing page {page_num}/{len(images)}...")
 
-        #  Convert PIL Image to format compatible with EasyOCR
+        # ✅ Convert PIL Image to format compatible with EasyOCR
         img_np = np.array(img.convert('RGB'))
 
         results = reader.readtext(img_np, detail=0, paragraph=True)
@@ -116,32 +120,58 @@ def extract_text_with_ocr(pdf_path, dpi=400, lang_list=['bn', 'en']):
     return extracted_pages_data
 
 # --- Execution ---
-import numpy as np  
 
-pdf_file_path = './data/bangla-text.pdf'
-output_json_file = 'extracted_pages_data.json'
-segmented_output_json_file = 'segmented_document_data.json'
 
-print("Starting OCR text extraction and structuring...")
-extracted_data = extract_text_with_ocr(pdf_file_path, dpi=300, lang_list=['bn', 'en'])
+if __name__ == "__main__":
+    if len(sys.argv) < 2:
+        print("Usage: python3 extract_text.py <pdf_file_path>")
+        sys.exit(1)
 
+    pdf_file_path = sys.argv[1]
+    if not os.path.isfile(pdf_file_path):
+        print(f"Error: File '{pdf_file_path}' does not exist.")
+        sys.exit(1)
+
+    output_json_file = 'extracted_pages_data.json'
+    segmented_output_json_file = 'segmented_document_data.json'
+
+    print("Starting OCR text extraction and structuring...")
+    extracted_data = extract_text_with_ocr(pdf_file_path, dpi=300, lang_list=['bn', 'en'])
+
+    try:
+        with open(output_json_file, 'w', encoding='utf-8') as f:
+            json.dump(extracted_data, f, ensure_ascii=False, indent=2)
+        print(f"Extracted structured page data saved to: {output_json_file}")
+        print(f"Total pages extracted: {len(extracted_data)}")
+    except Exception as e:
+        print(f"Error saving extracted_pages_data.json: {e}")
+
+    print("\n--- Starting Document Segmentation ---")
+    processor = DocumentProcessor(extracted_data)
+    segmented_data = processor.segment_document_by_type()
+
+    try:
+        with open(segmented_output_json_file, 'w', encoding='utf-8') as f:
+            json.dump(segmented_data, f, ensure_ascii=False, indent=2)
+        print(f"Segmented document data saved to: {segmented_output_json_file}")
+    except Exception as e:
+        print(f"Error saving segmented_document_data.json: {e}")
+
+    print("\nOCR extraction, structuring, and segmentation complete!")
+
+# --- Execute chunk.py, embedding.py, and retrieve.py in order ---
 try:
-    with open(output_json_file, 'w', encoding='utf-8') as f:
-        json.dump(extracted_data, f, ensure_ascii=False, indent=2)
-    print(f"Extracted structured page data saved to: {output_json_file}")
-    print(f"Total pages extracted: {len(extracted_data)}")
-except Exception as e:
-    print(f"Error saving extracted_pages_data.json: {e}")
+    print("\nRunning chunk.py...")
+    subprocess.run(["python3", "chunk.py"], check=True)
+    print("chunk.py completed.")
 
-print("\n--- Starting Document Segmentation ---")
-processor = DocumentProcessor(extracted_data)
-segmented_data = processor.segment_document_by_type()
+    print("\nRunning embedding.py...")
+    subprocess.run(["python3", "embedding.py"], check=True)
+    print("embedding.py completed.")
 
-try:
-    with open(segmented_output_json_file, 'w', encoding='utf-8') as f:
-        json.dump(segmented_data, f, ensure_ascii=False, indent=2)
-    print(f"Segmented document data saved to: {segmented_output_json_file}")
-except Exception as e:
-    print(f"Error saving segmented_document_data.json: {e}")
+    print("\nRunning ui.py...")
+    subprocess.run(["streamlit", "run", "ui_updated.py"], check=True)
+    print("ui.py completed.")
 
-print("\nOCR extraction, structuring, and segmentation complete!")
+except subprocess.CalledProcessError as e:
+    print(f"Error running script: {e}")
