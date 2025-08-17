@@ -50,10 +50,6 @@ def validate_chunks(chunks_content_only):
     
     return issues
 
-# Helper functions for `validate_chunks`
-def check_chunk_continuity(chunks):
-    pass
-
 def detect_mid_sentence_splits(chunks):
     issues = []
     # Expanded fragment_starts to better detect mid-sentence breaks
@@ -72,11 +68,7 @@ def detect_mid_sentence_splits(chunks):
                 issues.append((i, i+1, current_chunk_end[-50:], start_next[:50])) # Show last 50 chars of current, first 50 of next
     return issues
 
-def merge_chunks_if_broken(chunks):
-    pass
 
-def merge_fragmented_chunks(chunks):
-    pass
 # --- End of existing utility functions ---
 
 # --- NEW: Structural Segmentation and Chunking ---
