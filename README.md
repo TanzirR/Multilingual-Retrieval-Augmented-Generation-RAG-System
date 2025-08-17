@@ -107,7 +107,7 @@ For a more rigorous quantitative evaluation of a RAG system, one would typically
 - **Answer Correctness**: Is the generated answer factually correct based on the source?
 - **Recall/Precision (of retrieval)**: How many relevant documents were retrieved out of all relevant documents, and how many retrieved documents were actually relevant?
 
-## ❓ Answering Key Questions
+## 
 
 ### What method or library did I use to extract the text, and why? Did I face any formatting challenges with the PDF content?
 
@@ -192,7 +192,7 @@ The `intfloat/multilingual-e5-base` model is a transformer-based neural network.
 - **Vector Representation**: It then outputs a fixed-size numerical vector (embedding) for each piece of text. Texts with similar meanings are mapped to vectors that are close to each other in this high-dimensional vector space.
 - **"passage:" and "query:" Prefixes**: The E5 models are trained with specific prefixes ("passage: " for documents and "query: " for queries). These prefixes help the model differentiate between the type of input, optimizing the embeddings for retrieval tasks where a query needs to be compared against passages.
 
-### How am I comparing the query with your stored chunks? Why did I choose this similarity method and storage setup?
+### How am I comparing the query with my stored chunks? Why did I choose this similarity method and storage setup?
 
 I used a **hybrid retrieval approach** to compare the query with stored chunks, combining two main methods:
 
