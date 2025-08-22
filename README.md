@@ -9,12 +9,9 @@ Follow these steps to set up and run the RAG retrieval system locally.
 
 ### Prerequisites
 
-- **Python 3.8+**
-- **Git**
-- **Poppler (for pdf2image):**
-  - **Windows**: Download Poppler for Windows from [here](https://poppler.freedesktop.org/). Extract it and add the bin folder to your system's PATH.
-  - **macOS (Homebrew)**: `brew install poppler`
-  - **Linux (Ubuntu/Debian)**: `sudo apt-get install poppler-utils`
+- Python 3.10 or higher
+- An OpenAI API key
+
  
 ### Installation Steps
 
@@ -42,18 +39,15 @@ Follow these steps to set up and run the RAG retrieval system locally.
    ```
 5. **API Setup:**.
    ```bash
-   Create a file named .env inside the root folder of your project (the main project directory).
-   Inside that file, add your OpenAI API key like this:
+   Create a file named .env in the root directory of the project. Add your OpenAI API key to this file. This keeps your key secure and out of the main script.
    
-   OPENAI_API_KEY=sk-xxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxx
-   
-   (replace the xxxxxxxx... with your actual key)
+   OPENAI_API_KEY="your_openai_api_key_here"
    ```
 ## Running the Pipeline
 
    Running main.py will run the entire RAG pipeline. As the argument, the directory and the name of the pdf is required. 
    ```bash
-   python3 main.py ./data/document.pdf
+   python main.py ./data/document.pdf
    ```
 
 ## 🛠️ Used Tools, Libraries, and Packages
@@ -98,177 +92,4 @@ A formal, automated evaluation matrix is not explicitly implemented within this 
 - **Metadata**: Provides context like `page_range`, `type`, `segment_id`, etc.
 - **Keywords Found**: Shows overlapping keywords between the query and the chunk.
 - **Retrieval Time**: Measures the time taken for the retrieval process.
-
-For a more rigorous quantitative evaluation of a RAG system, one would typically use metrics such as:
-
-- **Context Relevance**: How relevant are the retrieved chunks to the query?
-- **Faithfulness**: Does the generated answer only use information from the retrieved context?
-- **Answer Relevance**: How relevant is the generated answer to the query?
-- **Answer Correctness**: Is the generated answer factually correct based on the source?
-- **Recall/Precision (of retrieval)**: How many relevant documents were retrieved out of all relevant documents, and how many retrieved documents were actually relevant?
-
-## 
-
-### What method or library did I use to extract the text, and why? Did I face any formatting challenges with the PDF content?
-
-I used **EasyOCR** in conjunction with **pdf2image** to extract text from the PDF. `pdf2image` converts each page of the PDF into an image, which `EasyOCR` then processes to extract text using deep learning models. `unicodedata` and `re` (regex) were used for post-OCR cleaning. This performed better for both English and Benglai compared to using **Tesseract OCR**
-
-**Why EasyOCR**: EasyOCR is a Python-based OCR library that uses deep learning models for text recognition. It offers several advantages:
-
-- **No system dependencies**: Unlike Tesseract, EasyOCR doesn't require separate installation of system packages
-- **High accuracy**: Deep learning models provide better accuracy, especially for complex scripts like Bengali
-- **Easy setup**: Automatically downloads required language models on first use
-- **Multi-language support**: Excellent support for Bengali (`bn`) and English (`en`) with good handling of mixed-language documents
-- **Better handling of stylized text**: More robust against font variations and image quality issues
-
-**Challenges**: There were some challenges faced, though EasyOCR handles many of them better than Tesseract OCR. Tesseract OCR failed to recognize both English and Bengali with a single script. EasyOCR fixed this issue.
-
-- **Stylized Text/Logos**: Elements like "10 MINUTE SCHOOL" may still be misrecognized if heavily stylized, though EasyOCR's deep learning approach is more resilient to font variations.
-- **Layout Interpretation**: While EasyOCR provides bounding box information that can help with layout understanding, complex multi-column layouts may still require careful processing to maintain proper reading order.
-- **Mixed Languages**: EasyOCR handles Bengali and English mixed text quite well when configured with `['bn', 'en']`, providing better results than traditional OCR engines.
-- **Image Quality**: Low-resolution or poorly scanned documents can still pose challenges, though EasyOCR's neural networks are more robust to image artifacts.
-  
-```json
-[{
-    "page_num": 3,
-    "lang": "bn,en",
-    "text": "1SHUTE 5৫H00_\nকবিপরিচিতি\nআহসান হাবীব বৃহত্তর বরিশাল অঞ্চলের পিরোজপুর জেলার শংকরপাশা গ্রামে ১৯১৭ খ্রিষ্টাব্দের দোসরা জানুয়ারি জন্মগ্রহণ করেন 4\nতাঁর পিতার নাম হামিজুদ্দিন হাওলাদার এবং মাতার নাম জমিলা খাতুন \nস্কুলজীবনেই তাঁর কবিতা লেখার হাতেখড়ি\nবরিশালের ব্রজমোহন কলেজে অধ্যয়নরত অবস্থায় কবিকে কলেজ ছেডে ভাগ্যানবেষণে কলকাতায় চলে আসতে হয়\nবাংলা ১ম পত্রসেই অস্ত্র"
-  },
-  {
-    "page_num": 4,
-    "lang": "bn,en",
-    "text": "1SHUTE 5৫H00\nকবিপরিচিতি\nপত্রিকা রেডিও প্রকাশনা সংস্থা প্রভৃতি পেশার সঙ্গে যুক্ত হলেও আহসান হাবীব শেষ পর্যন্ত সাংবাদিকতা বিশেষ করে পত্রিকার সাহিত্য সম্পাদক হিসেবেই জীবিকা অজনের পথ বেছে নেন 4\n১৯৫০এর দিকে তিনি কলকাতা ছেড়ে ঢাকা আসেন \nবেশ কয়েকটি পত্রিকায় কাজ করবার পরে ১৯৬৪ খরিষ্টাব্দে তিনি যোগ দেণ দৈনিক বাংলা তৎকালীন দৈনিক পাকিস্তান পত্রিকার সাহিত্য সম্পাদক হিসেবে \nবাংলা ১ম পত্রসেই অস্ত্র"
-  }]
-```
-
-### What chunking strategy did I choose (e.g., paragraph-based, sentence-based, character limit)? Why do I think it works well for semantic retrieval?
-
-Employed a multi-faceted chunking strategy using `langchain.text_splitter.RecursiveCharacterTextSplitter` combined with custom structural segmentation:
-
-1. **Structural Segmentation**: The `DocumentProcessor` first segments the entire PDF into logical blocks based on content patterns (e.g., "story," "vocabulary," "questions," "general"). This ensures that semantically distinct sections are kept separate.
-
-2. **Recursive Character Text Splitting**: Within each logical segment, `RecursiveCharacterTextSplitter` is used.
-
-   - **Separators Priority**: Defined a hierarchy of separators: `["।", ".", "!", "?", "\n\n", "\n", "—", ",", " ", ""]`. This prioritizes splitting by sentence-ending punctuation, then paragraph breaks, then line breaks, and finally individual characters as a last resort. This is crucial for maintaining semantic coherence by trying to keep sentences and paragraphs intact.
-   - **Character Limit & Overlap**: `chunk_size` (e.g., 700 characters) and `chunk_overlap` (e.g., 200 characters) are used to control the size of the chunks and ensure context continuity between them.
-
-3. **Post-processing**: A final step merges very small chunks (e.g., < 50 characters) with adjacent chunks to prevent fragmented context, and re-chunks excessively large chunks (e.g., > 1800 characters) to adhere to size limits.
-
-**Why it works well for semantic retrieval:**
-This strategy works well because it aims to create chunks that are:
-
-- **Semantically Coherent**: By prioritizing sentence and paragraph boundaries, each chunk is more likely to represent a complete thought or idea.
-- **Contextually Rich**: Overlap ensures that the beginning or end of a relevant passage is not lost if the query's key information spans a chunk boundary.
-- **Manageable Size**: Chunks are small enough to be relevant to a specific query but large enough to provide sufficient context for an LLM without exceeding its context window.
-- **Structurally Aware**: Segmenting by document type (story, questions, vocabulary) allows for specialized processing and metadata, improving the relevance of retrieved content for specific query types.
-
-```json
-[{
-    "content": "১৯৫০এর দিকে তিনি কলকাতা ছেড়ে ঢাকা আসেন\nবেশ কয়েকটি পত্রিকায় কাজ করবার পরে ১৯৬৪ খরিষ্টাব্দে তিনি যোগ দেণ দৈনিক বাংলা তৎকালীন দৈনিক পাকিস্তান পত্রিকার সাহিত্য সম্পাদক হিসেবে\nবাংলা ১ম পত্রসেই অস্ত্র\n1SHUTE 5৫H00\nকবিপরিচিতি\nআমৃত্যু এই পত্রিকার সঙ্গেই তিনি যুক্ত ছিলেন 4\nতিনি ১৯৬১ খরিরিষ্টাবদে বাংলা একাডেমি পুরস্কার এবং ১৯৭৮ খ্রিষ্টাব্দে একুশে পদকে ভূষিত হন 4\nস্বল্পভাষী আত্মমগ্ন স্পষ্টবাদী এই কবি ছিলেন মূলত মানবদরদি শিল্পী\nদেশ ও জনতার প্রতি ছিল তাঁর গভীর সংবেদনশীলতা\nবাংলা ১ম পত্রসেই অস্ত্র\n1SHUTE 5৫H00\nকবিপরিচিতি\nব্যকতিগত অনুভতি অভিজ্ঞতা যুক্তিবিচারের আলোকে এক সুগভীর জীবনঘনিষ্ঠ আশাবাদী চেতনা তাঁর কবিপ্রতিভার মূল সুর",
-    "metadata": {
-      "type": "story_segment",
-      "segment_id": "story_1",
-      "chunk_idx": 1,
-      "page_range": "1-23",
-      "source": "textbook_story"
-    }
-  }]
-```
-
-### What embedding model did I use? Why did I choose it? How does it capture the meaning of the text?
-
-Used the **intfloat/multilingual-e5-base** model from sentence-transformers for generating embeddings for both English and Bangla.
-
-**Why I chose it:**
-
-- **Multilingual Capability**: This model is specifically designed to handle multiple languages, which is essential for our use case involving both Bengali and English text.
-- **Strong Performance**: The E5 series models are known for their strong performance across various semantic similarity and retrieval tasks.
-- **Efficiency**: The 'base' version offers a good balance between performance and computational efficiency, making it suitable for local deployment.
-
-**How it captures the meaning of the text:**
-The `intfloat/multilingual-e5-base` model is a transformer-based neural network. It captures the meaning of text by:
-
-- **Contextual Embeddings**: It processes input text through multiple layers, understanding the relationships between words and phrases within their context.
-- **Vector Representation**: It then outputs a fixed-size numerical vector (embedding) for each piece of text. Texts with similar meanings are mapped to vectors that are close to each other in this high-dimensional vector space.
-- **"passage:" and "query:" Prefixes**: The E5 models are trained with specific prefixes ("passage: " for documents and "query: " for queries). These prefixes help the model differentiate between the type of input, optimizing the embeddings for retrieval tasks where a query needs to be compared against passages.
-
-### How am I comparing the query with my stored chunks? Why did I choose this similarity method and storage setup?
-
-I used a **hybrid retrieval approach** to compare the query with stored chunks, combining two main methods:
-
-#### 1. Semantic Search (Dense Retrieval):
-
-- **Method**: The query is embedded using `intfloat/multilingual-e5-base`, and this query embedding is compared against the pre-computed embeddings of all chunks stored in a FAISS index.
-- **Similarity Method**: I used Inner Product (IP) for similarity search in FAISS. Since the embeddings are normalized (unit vectors), Inner Product is mathematically equivalent to cosine similarity, which measures the angle between two vectors. A smaller angle (closer to 0) indicates higher similarity.
-- **Storage Setup**: FAISS (Facebook AI Similarity Search) is chosen because it's an open-source library optimized for efficient similarity search and clustering of dense vectors. It allows for fast retrieval of the top-k most similar chunks from millions of embeddings.
-
-#### 2. Lexical Search (Sparse Retrieval):
-
-- **Method**: I used `BM25Okapi` (from rank_bm25 library). This method performs keyword-based matching, looking for exact term overlap and considering term frequency and inverse document frequency.
-- **Why**: BM25 is excellent at capturing exact keyword matches, which semantic models might sometimes miss, especially for very specific or rare terms.
-
-#### 3. Hybrid Combination and Re-ranking:
-
-- **Initial Hybrid Score**: The results from both semantic and BM25 searches are combined using weighted scores (`semantic_weight=0.85`, `bm25_weight=0.15`). This creates a broader pool of initial candidates.
-- **Cross-Encoder Re-ranking**: A `cross-encoder/mmarco-mMiniLMv2-L12-H384-v1` CrossEncoder model is then used to re-rank these initial candidates. Cross-encoders take the query and each candidate chunk as a pair, processing them together to produce a relevance score. This is computationally more intensive but provides a more fine-grained understanding of relevance than dual-encoder (semantic) models.
-
-**Why this choice:**
-This hybrid approach balances the strengths of both methods:
-
-- **Semantic Search**: Captures conceptual similarity, even if exact keywords aren't present.
-- **Lexical Search**: Ensures recall of documents with direct keyword matches.
-- **Re-ranking**: Refines the initial retrieval, ensuring the most relevant chunks are prioritized for the LLM, leading to more accurate answers.
-- **FAISS**: Provides the necessary speed and scalability for large document collections.
-
-### How do I ensure that the question and the document chunks are compared meaningfully? What would happen if the query is vague or missing context?
-
-#### Ensuring Meaningful Comparison:
-
-- **Embedding Quality**: The choice of `intfloat/multilingual-e5-base` is critical. Its training on diverse multilingual data helps it generate high-quality embeddings that capture semantic meaning effectively for both Bengali and English.
-- **Hybrid Retrieval**: The combination of semantic and lexical search ensures that both the "meaning" (semantic) and "keywords" (lexical) of the query are considered. This reduces the chance of missing relevant chunks due to either pure semantic drift or lack of exact keyword matches.
-- **Cross-Encoder Re-ranking**: This is the most important step for ensuring meaningful comparison. By processing the query and each candidate chunk together as a pair, the Cross-Encoder can deeply analyze their interaction and contextual relevance, providing a highly accurate relevance score that goes beyond simple vector distance.
-- **Prompt Engineering for Embeddings**: Using the `passage:` and `query:` prefixes for the E5 model helps align the embeddings for optimal retrieval performance.
-- **Chunking Strategy**: As discussed, my chunking strategy aims to create semantically coherent and contextually rich chunks, ensuring that each chunk represents a meaningful unit of information that can be effectively compared to a query.
-- **Improved OCR Quality**: EasyOCR's deep learning approach provides cleaner, more accurate text extraction, leading to better quality embeddings and more meaningful comparisons.
-
-#### What would happen if the query is vague or missing context?
-
-- **Vague Query**: If the query is vague (e.g., "What about the poet?"), the retrieval system might return a broader set of chunks that touch upon various aspects of the poet's life or work. The re-ranker will still try to find the "most relevant" among these, but the overall relevance might be lower than for a specific query. The LLM would then have a more general context, potentially leading to a more general or less precise answer, or even an "I do not know" or আমি জানি না" if no truly specific answer can be inferred.
-
-- **Missing Context (in a conversation)**: In a multi-turn conversation, if the current query relies on previous turns but the system doesn't explicitly pass that conversational history (which our current `app.py` doesn't inherently do without further modifications), the query might be treated as a standalone question. This could lead to:
-  - **Irrelevant Retrieval**: The retriever might miss chunks that are relevant only when combined with the previous conversational context.
-  - **Incomplete Answers**: The LLM, lacking the full conversational context, might provide an answer that doesn't fully address the user's intent or seems out of place given the dialogue history. This is why implementing conversational memory (query rewriting/expansion) is crucial for true long-short term memory.
-
-### Do the results seem relevant? If not, what might improve them (e.g., better chunking, better embedding model, larger document)?
-
-All the queries in English had no problem giving the correct output. Even the queries in Bengali could give correct output. However, some queries may not be in the initial top 40 retrieved candidates. This can be improved by 'changing chunk_size' and `chunk_overlap`. Also changing the parameters such as Initial Candidates (K1), Final Chunks (K2), and BM25 weight in the retrieval stage provided accurate result for this particular query. 
-
-#### Potential Improvements:
-
-**1. Chunking Strategy Refinement:**
-
-- **Granularity for Specific Facts**: For very specific factual questions (like age, dates), the current chunking might sometimes split the direct answer from its most relevant surrounding context, or embed it within a larger chunk that isn't highly ranked for that specific detail. I could explore more aggressive splitting around specific factual patterns if such questions are common.
-
-**2. Embedding Model:**
-
-- **Domain-Specific Fine-tuning**: While multilingual-e5-base is good, fine-tuning it on a dataset of Bengali educational texts or questions-answer pairs from this specific domain could significantly boost its relevance for domain-specific queries.
-- **Alternative Multilingual Models**: Experiment with other state-of-the-art multilingual embedding models to see if they offer better performance for the specific data.
-
-**3. Retrieval and Re-ranking Parameters:**
-
-- **Adjust Hybrid Weights**: Experiment with `semantic_weight` and `bm25_weight` in `hybrid_retrieve_initial`. If exact factual recall is more important, slightly increasing `bm25_weight` might help, but this can also introduce noise.
-- **Increase initial_k_for_reranking**: Retrieving a larger pool of initial candidates (e.g., 60-80 instead of 40) might increase the chance of the correct chunk being present, even if its initial hybrid score isn't top-tier. The Cross-Encoder can then pick it out.
-- **Re-ranker Model**: While mmarco-mMiniLMv2-L12-H384-v1 is good for English, it is not the best for Bengali.
-
-**4. Document Quality (Pre-processing):**
-
-- **EasyOCR Parameter Tuning**: Experiment with different EasyOCR parameters like `width_ths`, `height_ths`, and `paragraph` settings to optimize text extraction quality for your specific document types.
-- **Structured Data Extraction**: For sections like questions, instead of just OCRing raw text, using more advanced techniques to extract structured data (e.g., question number, options, correct answer) could enable more precise retrieval.
-- **Post-OCR Cleaning**: Implement more sophisticated post-processing to clean up any remaining OCR artifacts and normalize the text format.
-
-**5. Conversational Memory (for follow-up questions):**
-
-- As discussed, for queries that rely on previous context (e.g., "তার বাবার নাম কী?" after asking about the poet), implementing query rewriting or history summarization using an LLM would significantly improve relevance.
-
-By systematically addressing these areas, the relevance of the retrieved results can be substantially improved for a wider range of queries. The use of EasyOCR provides a solid foundation with cleaner text extraction, which should lead to better overall performance compared to traditional OCR methods.
 
