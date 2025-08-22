@@ -37,10 +37,9 @@ Follow these steps to set up and run the RAG retrieval system locally.
    ```bash
    pip install -r requirements.txt
    ```
-5. **API Setup:**.
+5. **API Setup:**
+   Create a file named .env in the root directory of the project. Add your OpenAI API key to this file.
    ```bash
-   Create a file named .env in the root directory of the project. Add your OpenAI API key to this file. This keeps your key secure and out of the main script.
-   
    OPENAI_API_KEY="your_openai_api_key_here"
    ```
 ## Running the Pipeline
